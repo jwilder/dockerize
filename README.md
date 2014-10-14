@@ -23,6 +23,7 @@ For example, nginx will log to `/var/log/nginx/access.log' and
 the a solution for every application.  dockerize allows you to specify which logs files should
 be tailed and where they should be sent.
 
+See [A Simple Way To Dockerize Applications](http://jasonwilder.com/blog/2014/10/13/a-simple-way-to-dockerize-applications/)
 
 ## Installation
 
