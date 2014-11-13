@@ -17,4 +17,5 @@ func runCmd(cmd string, args ...string) {
 	if err != nil {
 		log.Fatalf("error running command: %s, %s\n", cmd, err)
 	}
+        defer wg.Done()
 }
