@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"syscall"
 )
 
 func runCmd(cmd string, args ...string) {
@@ -14,8 +15,21 @@ func runCmd(cmd string, args ...string) {
 	process.Stdin = os.Stdin
 	process.Stdout = os.Stdout
 	process.Stderr = os.Stderr
-	err := process.Run()
+
+	// start the process
+	err := process.Start()
 	if err != nil {
-		log.Fatalf("error running command: %s, %s\n", cmd, err)
+		log.Fatalf("error starting command: %s, %s\n", cmd, err)
+	}
+
+	// wait for process to finish
+	err = process.Wait()
+	if err == nil {
+		// command completed with exit status 0
+		os.Exit(0)
+	} else {
+		// command failed, exit with the same code
+		log.Printf("error running command: %s, %s\n", cmd, err)
+		os.Exit(err.(*exec.ExitError).Sys().(syscall.WaitStatus).ExitStatus())
 	}
 }
