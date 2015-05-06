@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"golang.org/x/net/context"
 )
 
 type sliceVar []string
@@ -33,6 +35,9 @@ var (
 	stderrTailFlag sliceVar
 	delimsFlag     string
 	delims         []string
+
+	ctx context.Context
+	cancel context.CancelFunc
 )
 
 func (s *sliceVar) Set(value string) error {
@@ -77,17 +82,20 @@ func main() {
 		generateFile(parts[0], parts[1])
 	}
 
+	// Setup context
+	ctx, cancel = context.WithCancel(context.Background())
+
 	wg.Add(1)
-	go runCmd(flag.Arg(0), flag.Args()[1:]...)
+	go runCmd(ctx, cancel, flag.Arg(0), flag.Args()[1:]...)
 
 	for _, out := range stdoutTailFlag {
 		wg.Add(1)
-		go tailFile(out, os.Stdout)
+		go tailFile(ctx, out, os.Stdout)
 	}
 
 	for _, err := range stderrTailFlag {
 		wg.Add(1)
-		go tailFile(err, os.Stderr)
+		go tailFile(ctx, err, os.Stderr)
 	}
 
 	wg.Wait()

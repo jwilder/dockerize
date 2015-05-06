@@ -6,9 +6,10 @@ import (
 	"os"
 
 	"github.com/ActiveState/tail"
+	"golang.org/x/net/context"
 )
 
-func tailFile(file string, dest *os.File) {
+func tailFile(ctx context.Context, file string, dest *os.File) {
 	defer wg.Done()
 	t, err := tail.TailFile(file, tail.Config{
 		Follow: true,
@@ -19,7 +20,18 @@ func tailFile(file string, dest *os.File) {
 	if err != nil {
 		log.Fatalf("unable to tail %s: %s", "foo", err)
 	}
-	for line := range t.Lines {
-		fmt.Fprintln(dest, line.Text)
+	
+	// main loop
+	for {
+		select {
+			// if the channel is done, then exit the loop
+			case <-ctx.Done():
+				t.Stop()
+				tail.Cleanup()
+				return
+			// get the next log line and echo it out
+			case line := <-t.Lines:
+				fmt.Fprintln(dest, line.Text)
+		}
 	}
 }
