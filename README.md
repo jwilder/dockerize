@@ -82,6 +82,12 @@ variables within a template with `.Env`.
 {{ .Env.PATH }} is my path
 ```
 
+If facter is installed, you can access its values:
+
+```
+{{ .Facter.ipaddress }} is my IP address
+```
+
 There are a few built in functions as well:
 
   * `default` - Returns a default value for one that does not exist
