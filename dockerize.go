@@ -13,18 +13,6 @@ import (
 
 type sliceVar []string
 
-type Context struct {
-}
-
-func (c *Context) Env() map[string]string {
-	env := make(map[string]string)
-	for _, i := range os.Environ() {
-		sep := strings.Index(i, "=")
-		env[i[0:sep]] = i[sep+1:]
-	}
-	return env
-}
-
 var (
 	buildVersion string
 	version      bool
@@ -36,7 +24,7 @@ var (
 	delimsFlag     string
 	delims         []string
 
-	ctx context.Context
+	ctx    context.Context
 	cancel context.CancelFunc
 )
 
