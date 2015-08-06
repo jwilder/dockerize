@@ -20,18 +20,18 @@ func tailFile(ctx context.Context, file string, dest *os.File) {
 	if err != nil {
 		log.Fatalf("unable to tail %s: %s", "foo", err)
 	}
-	
+
 	// main loop
 	for {
 		select {
-			// if the channel is done, then exit the loop
-			case <-ctx.Done():
-				t.Stop()
-				tail.Cleanup()
-				return
-			// get the next log line and echo it out
-			case line := <-t.Lines:
-				fmt.Fprintln(dest, line.Text)
+		// if the channel is done, then exit the loop
+		case <-ctx.Done():
+			t.Stop()
+			tail.Cleanup()
+			return
+		// get the next log line and echo it out
+		case line := <-t.Lines:
+			fmt.Fprintln(dest, line.Text)
 		}
 	}
 }

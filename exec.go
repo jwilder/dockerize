@@ -26,7 +26,7 @@ func runCmd(ctx context.Context, cancel context.CancelFunc, cmd string, args ...
 	}
 
 	wg.Add(1)
-	go func(){
+	go func() {
 		defer wg.Done()
 
 		// Setup signaling
@@ -34,19 +34,19 @@ func runCmd(ctx context.Context, cancel context.CancelFunc, cmd string, args ...
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGQUIT)
 
 		select {
-			case sig := <-sigs:
-				log.Printf("Received signal: %s\n", sig)
-				ctx, _ = context.WithTimeout(context.Background(), 10 * time.Second)
-				signalProcessWithTimeout(ctx, process, sig)
-				cancel()
-			case <-ctx.Done():
-				// exit when context is done
+		case sig := <-sigs:
+			log.Printf("Received signal: %s\n", sig)
+			ctx, _ = context.WithTimeout(context.Background(), 10*time.Second)
+			signalProcessWithTimeout(ctx, process, sig)
+			cancel()
+		case <-ctx.Done():
+			// exit when context is done
 		}
 	}()
 
 	err = process.Wait()
 	cancel()
-	
+
 	if err == nil {
 		log.Println("Command finished successfully.")
 	} else {
@@ -62,7 +62,7 @@ func signalProcessWithTimeout(ctx context.Context, process *exec.Cmd, sig os.Sig
 	process.Wait()
 	select {
 	case <-ctx.Done():
-    log.Println("Killing command due to timeout.")
-    process.Process.Kill()
+		log.Println("Killing command due to timeout.")
+		process.Process.Kill()
 	}
 }

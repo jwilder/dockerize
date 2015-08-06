@@ -36,7 +36,7 @@ var (
 	delimsFlag     string
 	delims         []string
 
-	ctx context.Context
+	ctx    context.Context
 	cancel context.CancelFunc
 )
 
