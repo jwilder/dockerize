@@ -1,3 +1,4 @@
-github.com/ActiveState/tail 068b72961a6bc5b4a82cf4fc14ccc724c0cfa73a
-github.com/howeyc/fsnotify 6b1ef893dc11e0447abda6da20a5203481878dda
+github.com/hpcloud/tail 05d326f7170255d4f0c2a57dd00268b9beeb6e59
+golang.org/x/net 972f0c5fbe4ae29e666c3f78c3ed42ae7a448b0a
+gopkg.in/fsnotify.v0 ea925a0a47d225b2ca7f9932b01d2ed4f3ec74f6
 gopkg.in/tomb.v1 c131134a1947e9afd9cecfe11f4c6dff0732ae58

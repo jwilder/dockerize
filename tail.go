@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/ActiveState/tail"
+	"github.com/hpcloud/tail"
 	"golang.org/x/net/context"
 )
 
