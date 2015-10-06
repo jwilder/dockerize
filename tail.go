@@ -27,7 +27,7 @@ func tailFile(ctx context.Context, file string, dest *os.File) {
 		// if the channel is done, then exit the loop
 		case <-ctx.Done():
 			t.Stop()
-			tail.Cleanup()
+			t.Cleanup()
 			return
 		// get the next log line and echo it out
 		case line := <-t.Lines:
