@@ -84,13 +84,19 @@ variables within a template with `.Env`.
 
 There are a few built in functions as well:
 
-  * `default` - Returns a default value for one that does not exist
-  * `contains` - Returns true if a string is within another string
-  * `exists` - Determines if a file path exists or not
-  * `split` - Splits a string into an array using a separator string
-  * `replace` - Replaces all occurences of a string within another string
-  * `parseUrl`- Parses a URL into it's protocol, scheme, host, etc. parts.
+  * `default $var $default` - Returns a default value for one that does not exist. `{{ default .Env.VERSION "0.1.2" }}`
+  * `contains $map $key` - Returns true if a string is within another string
+  * `exists $path` - Determines if a file path exists or not. `{{ exists "/etc/default/myapp" }}`
+  * `split $string $sep` - Splits a string into an array using a separator string. Alias for [`strings.Split`][go.string.Split]. `{{ split .Env.PATH ":" }}`
+  * `replace $string $old $new $count` - Replaces all occurences of a string within another string. Alias for [`strings.Replace`][go.string.Replace]. `{{ replace .Env.PATH ":" }}`
+  * `parseUrl $url` - Parses a URL into it's [protocol, scheme, host, etc. parts][go.url.URL]. Alias for [`url.Parse`][go.url.Parse]
 
 ## License
 
 MIT
+
+
+[go.string.Split]: https://golang.org/pkg/strings/#Split
+[go.string.Replace]: https://golang.org/pkg/strings/#Replace
+[go.url.Parse]: https://golang.org/pkg/net/url/#Parse
+[go.url.URL]: https://golang.org/pkg/net/url/#URL
