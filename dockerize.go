@@ -64,9 +64,10 @@ func main() {
 		return
 	}
 
-	if flag.NArg() == 0 {
-		log.Fatalln("no command specified")
-	}
+	//TODO: Not needed anymore for standalone mode
+	//if flag.NArg() == 0 {
+	//	log.Fatalln("no command specified")
+	//}
 
 	if delimsFlag != "" {
 		delims = strings.Split(delimsFlag, ":")
@@ -79,24 +80,31 @@ func main() {
 		if len(parts) != 2 {
 			log.Fatalf("bad template argument: %s. expected \"/template:/dest\"", t)
 		}
-		generateFile(parts[0], parts[1])
+		
+		if flag.Arg(0) == "" {
+			log.Println("Standalone mode, no app to start. Only template resolved")
+			generateFile(parts[0], parts[1])
+		}
+		else {
+			log.Println("Resolve and Execute")
+			generateFile(parts[0], parts[1])
+			// Setup context
+			ctx, cancel = context.WithCancel(context.Background())
+		
+			wg.Add(1)
+			go runCmd(ctx, cancel, flag.Arg(0), flag.Args()[1:]...)
+		
+			for _, out := range stdoutTailFlag {
+				wg.Add(1)
+				go tailFile(ctx, out, os.Stdout)
+			}
+		
+			for _, err := range stderrTailFlag {
+				wg.Add(1)
+				go tailFile(ctx, err, os.Stderr)
+			}
+		
+			wg.Wait()
+		}
 	}
-
-	// Setup context
-	ctx, cancel = context.WithCancel(context.Background())
-
-	wg.Add(1)
-	go runCmd(ctx, cancel, flag.Arg(0), flag.Args()[1:]...)
-
-	for _, out := range stdoutTailFlag {
-		wg.Add(1)
-		go tailFile(ctx, out, os.Stdout)
-	}
-
-	for _, err := range stderrTailFlag {
-		wg.Add(1)
-		go tailFile(ctx, err, os.Stderr)
-	}
-
-	wg.Wait()
 }
