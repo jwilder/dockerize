@@ -64,7 +64,7 @@ func main() {
 		return
 	}
 
-	//TODO: Fix validation for standalone mode as this fails with standalone one
+	//TODO: Not needed anymore for standalone mode
 	//if flag.NArg() == 0 {
 	//	log.Fatalln("no command specified")
 	//}
