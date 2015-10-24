@@ -64,9 +64,10 @@ func main() {
 		return
 	}
 
-	if flag.NArg() == 0 {
-		log.Fatalln("no command specified")
-	}
+	//TODO: Fix validation for standalone mode as this fails with standalone one
+	//if flag.NArg() == 0 {
+	//	log.Fatalln("no command specified")
+	//}
 
 	if delimsFlag != "" {
 		delims = strings.Split(delimsFlag, ":")
