@@ -49,6 +49,31 @@ func (s *sliceVar) String() string {
 	return strings.Join(*s, ",")
 }
 
+func usage() {
+	println(`Usage: dockerize [options] [command]
+
+Utility to simplify running applications in docker containers
+
+Options:`)
+	flag.PrintDefaults()
+
+	println(`
+Arguments:
+  command - command to executed
+  `)
+
+	println(`Examples:
+`)
+	println(`   Generate /etc/nginx/nginx.conf using nginx.tmpl as a template, tail /var/log/nginx/access.log
+   and /var/log/nginx/error.log and start nginx.`)
+	println(`
+   dockerize -template nginx.tmpl:/etc/nginx/nginx.conf \
+             -stdout /var/log/nginx/access.log \
+             -stderr /var/log/nginx/error.log nginx
+	`)
+
+	println(`For more information, see https://github.com/jwilder/dockerize`)
+}
 func main() {
 
 	flag.BoolVar(&version, "version", false, "show version")
@@ -57,6 +82,7 @@ func main() {
 	flag.Var(&stderrTailFlag, "stderr", "Tails a file to stderr. Can be passed multiple times")
 	flag.StringVar(&delimsFlag, "delims", "", `template tag delimiters. default "{{":"}}" `)
 
+	flag.Usage = usage
 	flag.Parse()
 
 	if version {
@@ -65,7 +91,8 @@ func main() {
 	}
 
 	if flag.NArg() == 0 {
-		log.Fatalln("no command specified")
+		usage()
+		os.Exit(1)
 	}
 
 	if delimsFlag != "" {
