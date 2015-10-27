@@ -90,7 +90,7 @@ func main() {
 		return
 	}
 
-	if flag.NArg() == 0 {
+	if flag.NArg() == 0 && flag.NFlag() == 0 {
 		usage()
 		os.Exit(1)
 	}
@@ -116,8 +116,10 @@ func main() {
 	// Setup context
 	ctx, cancel = context.WithCancel(context.Background())
 
-	wg.Add(1)
-	go runCmd(ctx, cancel, flag.Arg(0), flag.Args()[1:]...)
+	if flag.NArg() > 0 {
+		wg.Add(1)
+		go runCmd(ctx, cancel, flag.Arg(0), flag.Args()[1:]...)
+	}
 
 	for _, out := range stdoutTailFlag {
 		wg.Add(1)
