@@ -102,11 +102,15 @@ func main() {
 		}
 	}
 	for _, t := range templatesFlag {
-		parts := strings.Split(t, ":")
-		if len(parts) != 2 {
-			log.Fatalf("bad template argument: %s. expected \"/template:/dest\"", t)
+		template, dest := t, ""
+		if strings.Contains(t, ":") {
+			parts := strings.Split(t, ":")
+			if len(parts) != 2 {
+				log.Fatalf("bad template argument: %s. expected \"/template:/dest\"", t)
+			}
+			template, dest = parts[0], parts[1]
 		}
-		generateFile(parts[0], parts[1])
+		generateFile(template, dest)
 	}
 
 	// Setup context
