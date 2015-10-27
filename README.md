@@ -60,6 +60,14 @@ $ dockerize -template template1.tmpl:file1.cfg -template template2.tmpl:file3
 
 ```
 
+Templates can be genereated to `STDOUT` by not specifiying a dest:
+
+```
+$ dockerize -template template1.tmpl
+
+```
+
+
 You can tail multiple files to `STDOUT` and `STDERR` by passing the options multiple times.
 
 ```
