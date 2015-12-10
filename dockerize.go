@@ -28,6 +28,7 @@ func (c *Context) Env() map[string]string {
 var (
 	buildVersion string
 	version      bool
+	poll         bool
 	wg           sync.WaitGroup
 
 	templatesFlag  sliceVar
@@ -77,6 +78,7 @@ Arguments:
 func main() {
 
 	flag.BoolVar(&version, "version", false, "show version")
+	flag.BoolVar(&poll, "poll", false, "enable polling")
 	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times")
 	flag.Var(&stdoutTailFlag, "stdout", "Tails a file to stdout. Can be passed multiple times")
 	flag.Var(&stderrTailFlag, "stderr", "Tails a file to stderr. Can be passed multiple times")
@@ -123,12 +125,12 @@ func main() {
 
 	for _, out := range stdoutTailFlag {
 		wg.Add(1)
-		go tailFile(ctx, out, os.Stdout)
+		go tailFile(ctx, out, poll, os.Stdout)
 	}
 
 	for _, err := range stderrTailFlag {
 		wg.Add(1)
-		go tailFile(ctx, err, os.Stderr)
+		go tailFile(ctx, err, poll, os.Stderr)
 	}
 
 	wg.Wait()
