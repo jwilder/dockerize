@@ -18,8 +18,8 @@ It may require that the database URL be read from a python settings file with a 
 
 Another use case is when the application logs to specific files on the filesystem and not stdout
 or stderr.  This makes it difficult to troubleshoot the container using the `docker logs` command.
-For example, nginx will log to `/var/log/nginx/access.log' and
-'/var/log/nginx/error.log' by default.  While you can sometimes work around this, it's tedious to find
+For example, nginx will log to `/var/log/nginx/access.log` and
+`/var/log/nginx/error.log` by default.  While you can sometimes work around this, it's tedious to find
 the a solution for every application.  dockerize allows you to specify which logs files should
 be tailed and where they should be sent.
 
@@ -44,7 +44,7 @@ RUN tar -C /usr/local/bin -xzvf dockerize-linux-amd64-v0.0.4.tar.gz
 dockerize works by wrapping the call to your application using the `ENTRYPOINT` or `CMD` directives.
 
 This would generate `/etc/nginx/nginx.conf` from the template located at `/etc/nginx/nginx.tmpl` and
-send `/var/log/nginx/access.log' to `STDOUT` and `/var/log/nginx/error.log` to `STDERR` after running
+send `/var/log/nginx/access.log` to `STDOUT` and `/var/log/nginx/error.log` to `STDERR` after running
 `nginx`.
 
 ```
