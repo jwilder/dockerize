@@ -11,7 +11,7 @@ stderr.
 The typical use case for dockerize is when you have an application that has one or more
 configuration files and you would like to control some of the values using environment variables.
 
-For example, a Python application using Sqlalchemy may be able to use environment variables directly.
+For example, a Python application using Sqlalchemy might not be able to use environment variables directly.
 It may require that the database URL be read from a python settings file with a variable named
 `SQLALCHEMY_DATABASE_URI`.  dockerize allows you to set an environment variable such as
 `DATABASE_URL` and update the python file when the container starts.
