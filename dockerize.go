@@ -4,14 +4,19 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/net/context"
 )
 
 type sliceVar []string
+type hostFlagsVar []string
 
 type Context struct {
 }
@@ -30,15 +35,27 @@ var (
 	version      bool
 	wg           sync.WaitGroup
 
-	templatesFlag  sliceVar
-	stdoutTailFlag sliceVar
-	stderrTailFlag sliceVar
-	delimsFlag     string
-	delims         []string
+	templatesFlag   sliceVar
+	stdoutTailFlag  sliceVar
+	stderrTailFlag  sliceVar
+	delimsFlag      string
+	delims          []string
+	waitFlag        hostFlagsVar
+	waitTimeoutFlag time.Duration
+	dependencyChan  chan struct{}
 
 	ctx    context.Context
 	cancel context.CancelFunc
 )
+
+func (i *hostFlagsVar) String() string {
+	return fmt.Sprint(*i)
+}
+
+func (i *hostFlagsVar) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
 
 func (s *sliceVar) Set(value string) error {
 	*s = append(*s, value)
@@ -47,6 +64,59 @@ func (s *sliceVar) Set(value string) error {
 
 func (s *sliceVar) String() string {
 	return strings.Join(*s, ",")
+}
+
+func waitForDependencies() {
+	dependencyChan := make(chan struct{})
+
+	go func() {
+		for _, host := range waitFlag {
+			log.Println("Waiting for host:", host)
+			u, err := url.Parse(host)
+			if err != nil {
+				log.Fatalf("bad hostname provided: %s. %s", host, err.Error())
+			}
+
+			switch u.Scheme {
+			case "tcp", "tcp4", "tcp6":
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for {
+						conn, _ := net.DialTimeout(u.Scheme, u.Host, waitTimeoutFlag)
+						if conn != nil {
+							log.Println("Connected to", u.String())
+							return
+						}
+					}
+				}()
+			case "http", "https":
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for {
+						resp, err := http.Get(u.String())
+						if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
+							log.Printf("Received %d from %s\n", resp.StatusCode, u.String())
+							return
+						}
+					}
+				}()
+			default:
+				log.Fatalf("invalid host protocol provided: %s. supported protocols are: tcp, tcp4, tcp6 and http", u.Scheme)
+			}
+		}
+		wg.Wait()
+		close(dependencyChan)
+	}()
+
+	select {
+	case <-dependencyChan:
+		break
+	case <-time.After(waitTimeoutFlag):
+		log.Fatalf("Timeout after %s waiting on dependencies to become available: %v", waitTimeoutFlag, waitFlag)
+	}
+
 }
 
 func usage() {
@@ -59,21 +129,23 @@ Options:`)
 
 	println(`
 Arguments:
-  command - command to executed
+  command - command to be executed
   `)
 
 	println(`Examples:
 `)
 	println(`   Generate /etc/nginx/nginx.conf using nginx.tmpl as a template, tail /var/log/nginx/access.log
-   and /var/log/nginx/error.log and start nginx.`)
+   and /var/log/nginx/error.log, waiting for a website to become available on port 8000 and start nginx.`)
 	println(`
    dockerize -template nginx.tmpl:/etc/nginx/nginx.conf \
              -stdout /var/log/nginx/access.log \
-             -stderr /var/log/nginx/error.log nginx
+             -stderr /var/log/nginx/error.log \
+             -wait tcp://web:8000 nginx
 	`)
 
 	println(`For more information, see https://github.com/jwilder/dockerize`)
 }
+
 func main() {
 
 	flag.BoolVar(&version, "version", false, "show version")
@@ -81,6 +153,8 @@ func main() {
 	flag.Var(&stdoutTailFlag, "stdout", "Tails a file to stdout. Can be passed multiple times")
 	flag.Var(&stderrTailFlag, "stderr", "Tails a file to stderr. Can be passed multiple times")
 	flag.StringVar(&delimsFlag, "delims", "", `template tag delimiters. default "{{":"}}" `)
+	flag.Var(&waitFlag, "wait", "Host (tcp/tcp4/tcp6/http/https) to wait for before this container starts. Can be passed multiple times. e.g. tcp://db:5432")
+	flag.DurationVar(&waitTimeoutFlag, "timeout", 10*time.Second, "Host wait timeout")
 
 	flag.Usage = usage
 	flag.Parse()
@@ -112,6 +186,8 @@ func main() {
 		}
 		generateFile(template, dest)
 	}
+
+	waitForDependencies()
 
 	// Setup context
 	ctx, cancel = context.WithCancel(context.Background())
