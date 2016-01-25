@@ -1,4 +1,4 @@
-dockerize ![version v0.1.0](https://img.shields.io/badge/version-v0.1.0-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+dockerize ![version v0.2.0](https://img.shields.io/badge/version-v0.2.0-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 =============
 
 Utility to simplify running applications in docker containers.
@@ -29,14 +29,14 @@ See [A Simple Way To Dockerize Applications](http://jasonwilder.com/blog/2014/10
 
 Download the latest version in your container:
 
-* [linux/amd64](https://github.com/jwilder/dockerize/releases/download/v0.1.0/dockerize-linux-amd64-v0.1.0.tar.gz)
+* [linux/amd64](https://github.com/jwilder/dockerize/releases/download/v0.2.0/dockerize-linux-amd64-v0.2.0.tar.gz)
 
 For Ubuntu Images:
 
 ```
 RUN apt-get update && apt-get install -y wget
-RUN wget https://github.com/jwilder/dockerize/releases/download/v0.1.0/dockerize-linux-amd64-v0.1.0.tar.gz
-RUN tar -C /usr/local/bin -xzvf dockerize-linux-amd64-v0.1.0.tar.gz
+RUN wget https://github.com/jwilder/dockerize/releases/download/v0.2.0/dockerize-linux-amd64-v0.2.0.tar.gz
+RUN tar -C /usr/local/bin -xzvf dockerize-linux-amd64-v0.2.0.tar.gz
 ```
 
 ## Usage
@@ -53,7 +53,7 @@ CMD dockerize -template /etc/nginx/nginx.tmpl:/etc/nginx/nginx.conf -stdout /var
 
 ### Command-line Options
 
-You can specify multiple template by passing using `-template` multiple times:
+You can specify multiple templates by passing using `-template` multiple times:
 
 ```
 $ dockerize -template template1.tmpl:file1.cfg -template template2.tmpl:file3
@@ -74,6 +74,14 @@ You can tail multiple files to `STDOUT` and `STDERR` by passing the options mult
 $ dockerize -stdout info.log -stdout perf.log
 
 ```
+
+If `inotify` does not work in you container, you use `-poll` to poll for file changes instead.
+
+```
+$ dockerize -stdout info.log -stdout perf.log -poll
+
+```
+
 
 If your file uses `{{` and `}}` as part of it's syntax, you can change the template escape characters using the `-delims`.
 
