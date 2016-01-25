@@ -31,7 +31,9 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 			return
 		// get the next log line and echo it out
 		case line := <-t.Lines:
-			fmt.Fprintln(dest, line.Text)
+			if line != nil {
+				fmt.Fprintln(dest, line.Text)
+			}
 		}
 	}
 }
