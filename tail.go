@@ -9,12 +9,12 @@ import (
 	"golang.org/x/net/context"
 )
 
-func tailFile(ctx context.Context, file string, dest *os.File) {
+func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 	defer wg.Done()
 	t, err := tail.TailFile(file, tail.Config{
 		Follow: true,
 		ReOpen: true,
-		//Poll:   true,
+		Poll:   poll,
 		Logger: tail.DiscardingLogger,
 	})
 	if err != nil {
