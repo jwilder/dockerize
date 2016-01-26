@@ -104,7 +104,7 @@ func waitForDependencies() {
 					}
 				}()
 			default:
-				log.Fatalf("invalid host protocol provided: %s. supported protocols are: tcp, tcp4, tcp6, udp, udp4, udp6 and http", u.Scheme)
+				log.Fatalf("invalid host protocol provided: %s. supported protocols are: tcp, tcp4, tcp6, udp, udp4, udp6, http and https", u.Scheme)
 			}
 		}
 		wg.Wait()
