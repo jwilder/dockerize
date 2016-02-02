@@ -113,6 +113,7 @@ variables within a template with `.Env`.
 There are a few built in functions as well:
 
   * `default $var $default` - Returns a default value for one that does not exist. `{{ default .Env.VERSION "0.1.2" }}`
+  * `equals $val1 $val2` - Returns true if one string equals another, and false otherwise. `{{ if equals .Env.MY_FLAG "1" }}ON{{ else }}OFF{{ end }}`
   * `contains $map $key` - Returns true if a string is within another string
   * `exists $path` - Determines if a file path exists or not. `{{ exists "/etc/default/myapp" }}`
   * `split $string $sep` - Splits a string into an array using a separator string. Alias for [`strings.Split`][go.string.Split]. `{{ split .Env.PATH ":" }}`
