@@ -29,6 +29,10 @@ func contains(item map[string]string, key string) bool {
 	return false
 }
 
+func equals(left, right string) bool {
+	return left == right
+}
+
 func defaultValue(args ...interface{}) (string, error) {
 	if len(args) == 0 {
 		return "", fmt.Errorf("default called with no values!")
@@ -66,6 +70,7 @@ func parseUrl(rawurl string) *url.URL {
 func generateFile(templatePath, destPath string) bool {
 	tmpl := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
 		"contains": contains,
+		"equals":   equals,
 		"exists":   exists,
 		"split":    strings.Split,
 		"replace":  strings.Replace,
