@@ -64,10 +64,6 @@ func parseUrl(rawurl string) *url.URL {
 	return u
 }
 
-func atoi(s string) (int, error) {
-	return strconv.Atoi(s)
-}
-
 func add(arg1, arg2 int) int {
 	return arg1 + arg2
 }
@@ -80,7 +76,7 @@ func generateFile(templatePath, destPath string) bool {
 		"replace":  strings.Replace,
 		"default":  defaultValue,
 		"parseUrl": parseUrl,
-		"atoi":     atoi,
+		"atoi":     strconv.Atoi,
 		"add":      add,
 	})
 
