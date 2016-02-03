@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"text/template"
@@ -63,6 +64,10 @@ func parseUrl(rawurl string) *url.URL {
 	return u
 }
 
+func add(arg1, arg2 int) int {
+	return arg1 + arg2
+}
+
 func generateFile(templatePath, destPath string) bool {
 	tmpl := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
 		"contains": contains,
@@ -71,6 +76,8 @@ func generateFile(templatePath, destPath string) bool {
 		"replace":  strings.Replace,
 		"default":  defaultValue,
 		"parseUrl": parseUrl,
+		"atoi":     strconv.Atoi,
+		"add":      add,
 	})
 
 	if len(delims) > 0 {
