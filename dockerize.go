@@ -45,6 +45,16 @@ var (
 	waitTimeoutFlag time.Duration
 	dependencyChan  chan struct{}
 
+	rlimitCore      string
+	rlimitCpu       string
+	rlimitData      string
+	rlimitFileSize  string
+	rlimitMemLocked string
+	rlimitNoFile    string
+	rlimitNoProc    string
+	rlimitRss       string
+	rlimitStack     string
+
 	ctx    context.Context
 	cancel context.CancelFunc
 )
@@ -157,6 +167,12 @@ func main() {
 	flag.StringVar(&delimsFlag, "delims", "", `template tag delimiters. default "{{":"}}" `)
 	flag.Var(&waitFlag, "wait", "Host (tcp/tcp4/tcp6/http/https) to wait for before this container starts. Can be passed multiple times. e.g. tcp://db:5432")
 	flag.DurationVar(&waitTimeoutFlag, "timeout", 10*time.Second, "Host wait timeout")
+	flag.StringVar(&rlimitCore, "rlimit-core", "", "core file size limit in bytes")
+	flag.StringVar(&rlimitCpu, "rlimit-cpu", "", "cpu time limit in seconds")
+	flag.StringVar(&rlimitData, "rlimit-data", "", "data seg size limit in bytes")
+	flag.StringVar(&rlimitFileSize, "rlimit-fsize", "", "file size limit limit in bytes")
+	flag.StringVar(&rlimitNoFile, "rlimit-nofile", "", "number of open files limit")
+	flag.StringVar(&rlimitStack, "rlimit-stack", "", "stack size limit in bytes")
 
 	flag.Usage = usage
 	flag.Parse()
@@ -177,6 +193,12 @@ func main() {
 			log.Fatalf("bad delimiters argument: %s. expected \"left:right\"", delimsFlag)
 		}
 	}
+	setLimit("rlimit-core", rlimitCore);
+	setLimit("rlimit-cpu", rlimitCpu);
+	setLimit("rlimit-data", rlimitData);
+	setLimit("rlimit-fsize", rlimitFileSize);
+	setLimit("rlimit-nofile", rlimitNoFile);
+	setLimit("rlimit-stack", rlimitStack);
 	for _, t := range templatesFlag {
 		template, dest := t, ""
 		if strings.Contains(t, ":") {
