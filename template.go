@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"net/url"
@@ -11,6 +12,18 @@ import (
 	"syscall"
 	"text/template"
 )
+
+type EnvContext struct {
+}
+
+func (c *EnvContext) Env() map[string]string {
+	env := make(map[string]string)
+	for _, i := range os.Environ() {
+		sep := strings.Index(i, "=")
+		env[i[0:sep]] = i[sep+1:]
+	}
+	return env
+}
 
 func exists(path string) (bool, error) {
 	_, err := os.Stat(path)
@@ -68,6 +81,30 @@ func add(arg1, arg2 int) int {
 	return arg1 + arg2
 }
 
+//
+// Execute the string_template under the EnvContext, and
+// return the result as a string
+//
+func string_template_eval(string_template string) string {
+	var result bytes.Buffer
+	t := template.New("String Template")
+
+	t, err := t.Parse(string_template)
+	if err != nil {
+		log.Fatalf("unable to parse template: %s", err)
+	}
+
+	err = t.Execute(&result, &EnvContext{})
+	if err != nil {
+		log.Fatalf("template error: %s\n", err)
+	}
+
+	return result.String()
+}
+
+//
+// Execute the template at templatePath under the EnvContext and write it to destPath
+//
 func generateFile(templatePath, destPath string) bool {
 	tmpl := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
 		"contains": contains,
@@ -97,7 +134,7 @@ func generateFile(templatePath, destPath string) bool {
 		defer dest.Close()
 	}
 
-	err = tmpl.ExecuteTemplate(dest, filepath.Base(templatePath), &Context{})
+	err = tmpl.ExecuteTemplate(dest, filepath.Base(templatePath), &EnvContext{})
 	if err != nil {
 		log.Fatalf("template error: %s\n", err)
 	}

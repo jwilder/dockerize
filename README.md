@@ -53,10 +53,10 @@ CMD dockerize -template /etc/nginx/nginx.tmpl:/etc/nginx/nginx.conf -stdout /var
 
 ### Command-line Options
 
-You can specify multiple templates by passing using `-template` multiple times:
+You can specify multiple templates by passing `-template` multiple times:
 
 ```
-$ dockerize -template template1.tmpl:file1.cfg -template template2.tmpl:file3
+$ dockerize -template template1.tmpl:file1.cfg -template template2.tmpl:file2
 
 ```
 
@@ -67,6 +67,15 @@ $ dockerize -template template1.tmpl
 
 ```
 
+
+You can overlay files onto the container at runtime by passing `-overlay` multiple times.   The argument uses a form similar to the `--volume` option of the `docker run` command:  `source:dest`.   Overlays are applied recursively onto the destination in a similar manner to `cp -rv`.   If multiple overlays are specified, they are applied in the order in which they were listed on the command line.  
+
+Overlays are used to replace entire sets of files with alternative content, whereas templates allow environment substitutions into a single file.  The example below assumes that /tmp/overlays has already been COPY'd into the image by the Dockerfile.
+
+```
+$ dockerize  -overlay "/tmp/overlays/_common/html:/usr/share/nginx/" \
+             -overlay "/tmp/overlays/{{ .Env.DEPLOYMENT_ENV }}/html:/usr/share/nginx/"
+```
 
 You can tail multiple files to `STDOUT` and `STDERR` by passing the options multiple times.
 

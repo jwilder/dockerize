@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -18,18 +19,6 @@ import (
 type sliceVar []string
 type hostFlagsVar []string
 
-type Context struct {
-}
-
-func (c *Context) Env() map[string]string {
-	env := make(map[string]string)
-	for _, i := range os.Environ() {
-		sep := strings.Index(i, "=")
-		env[i[0:sep]] = i[sep+1:]
-	}
-	return env
-}
-
 var (
 	buildVersion string
 	version      bool
@@ -39,6 +28,7 @@ var (
 	templatesFlag   sliceVar
 	stdoutTailFlag  sliceVar
 	stderrTailFlag  sliceVar
+	overlaysFlag    sliceVar
 	delimsFlag      string
 	delims          []string
 	waitFlag        hostFlagsVar
@@ -69,6 +59,10 @@ func (s *sliceVar) String() string {
 
 func waitForDependencies() {
 	dependencyChan := make(chan struct{})
+
+	if waitFlag == nil {
+		return
+	}
 
 	go func() {
 		for _, host := range waitFlag {
@@ -104,7 +98,7 @@ func waitForDependencies() {
 					}
 				}()
 			default:
-				log.Fatalf("invalid host protocol provided: %s. supported protocols are: tcp, tcp4, tcp6 and http", u.Scheme)
+				log.Fatalf("invalid host protocol provided: %s. supported protocols are: tcp, tcp4, tcp6, http and https", u.Scheme)
 			}
 		}
 		wg.Wait()
@@ -139,7 +133,9 @@ Arguments:
    and /var/log/nginx/error.log, waiting for a website to become available on port 8000 and start nginx.`)
 	println(`
    dockerize -template nginx.tmpl:/etc/nginx/nginx.conf \
-             -stdout /var/log/nginx/access.log \
+   	     -overlay overlays/_common/html:/usr/share/nginx/ \
+   	     -overlay overlays/{{ .Env.DEPLOYMENT_ENV }}/html:/usr/share/nginx/ \`)
+	println(`   	     -stdout /var/log/nginx/access.log \
              -stderr /var/log/nginx/error.log \
              -wait tcp://web:8000 nginx
 	`)
@@ -152,6 +148,7 @@ func main() {
 	flag.BoolVar(&version, "version", false, "show version")
 	flag.BoolVar(&poll, "poll", false, "enable polling")
 	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times")
+	flag.Var(&overlaysFlag, "overlay", "overlay (/src:/dest). Can be passed multiple times")
 	flag.Var(&stdoutTailFlag, "stdout", "Tails a file to stdout. Can be passed multiple times")
 	flag.Var(&stderrTailFlag, "stderr", "Tails a file to stderr. Can be passed multiple times")
 	flag.StringVar(&delimsFlag, "delims", "", `template tag delimiters. default "{{":"}}" `)
@@ -177,6 +174,26 @@ func main() {
 			log.Fatalf("bad delimiters argument: %s. expected \"left:right\"", delimsFlag)
 		}
 	}
+
+	// Overlay files from src --> dst
+	for _, o := range overlaysFlag {
+		if strings.Contains(o, ":") {
+			parts := strings.Split(o, ":")
+			if len(parts) != 2 {
+				log.Fatalf("bad overlay argument: '%s'. expected \"/src:/dest\"", o)
+			}
+			src, dest := string_template_eval(parts[0]), string_template_eval(parts[1])
+
+			log.Printf("overlaying %s --> %s", src, dest)
+
+			cmd := exec.Command("cp", "-rv", src, dest)
+			cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+			if err := cmd.Run(); err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+
 	for _, t := range templatesFlag {
 		template, dest := t, ""
 		if strings.Contains(t, ":") {
@@ -184,7 +201,7 @@ func main() {
 			if len(parts) != 2 {
 				log.Fatalf("bad template argument: %s. expected \"/template:/dest\"", t)
 			}
-			template, dest = parts[0], parts[1]
+			template, dest = string_template_eval(parts[0]), string_template_eval(parts[1])
 		}
 		generateFile(template, dest)
 	}
