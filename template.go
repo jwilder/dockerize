@@ -68,6 +68,14 @@ func add(arg1, arg2 int) int {
 	return arg1 + arg2
 }
 
+func isTrue(bool string) bool {
+  b, err := strconv.ParseBool(strings.ToLower(bool))
+  if err == nil {
+    return b
+  }
+  return false
+}
+
 func generateFile(templatePath, destPath string) bool {
 	tmpl := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
 		"contains": contains,
@@ -78,6 +86,9 @@ func generateFile(templatePath, destPath string) bool {
 		"parseUrl": parseUrl,
 		"atoi":     strconv.Atoi,
 		"add":      add,
+    "isTrue":   isTrue,
+    "lower":    strings.ToLower,
+    "upper":    strings.ToUpper,
 	})
 
 	if len(delims) > 0 {
