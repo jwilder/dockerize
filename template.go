@@ -68,12 +68,12 @@ func add(arg1, arg2 int) int {
 	return arg1 + arg2
 }
 
-func isTrue(bool string) bool {
-  b, err := strconv.ParseBool(strings.ToLower(bool))
-  if err == nil {
-    return b
-  }
-  return false
+func isTrue(s string) bool {
+	b, err := strconv.ParseBool(strings.ToLower(s))
+	if err == nil {
+		return b
+	}
+	return false
 }
 
 func generateFile(templatePath, destPath string) bool {
@@ -86,9 +86,9 @@ func generateFile(templatePath, destPath string) bool {
 		"parseUrl": parseUrl,
 		"atoi":     strconv.Atoi,
 		"add":      add,
-    "isTrue":   isTrue,
-    "lower":    strings.ToLower,
-    "upper":    strings.ToUpper,
+		"isTrue":   isTrue,
+		"lower":    strings.ToLower,
+		"upper":    strings.ToUpper,
 	})
 
 	if len(delims) > 0 {
