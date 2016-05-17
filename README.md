@@ -33,10 +33,12 @@ Download the latest version in your container:
 
 For Ubuntu Images:
 
-```
+``` Dockerfile
 RUN apt-get update && apt-get install -y wget
-RUN wget https://github.com/jwilder/dockerize/releases/download/v0.2.0/dockerize-linux-amd64-v0.2.0.tar.gz
-RUN tar -C /usr/local/bin -xzvf dockerize-linux-amd64-v0.2.0.tar.gz
+
+ENV DOCKERIZE_VERSION v0.2.0
+RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
 ```
 
 ## Usage
@@ -47,7 +49,7 @@ This would generate `/etc/nginx/nginx.conf` from the template located at `/etc/n
 send `/var/log/nginx/access.log` to `STDOUT` and `/var/log/nginx/error.log` to `STDERR` after running
 `nginx`, only after waiting for the `web` host to respond on `tcp 8000`:
 
-```
+``` Dockerfile
 CMD dockerize -template /etc/nginx/nginx.tmpl:/etc/nginx/nginx.conf -stdout /var/log/nginx/access.log -stderr /var/log/nginx/error.log -wait tcp://web:8000 nginx
 ```
 
