@@ -106,7 +106,7 @@ $ dockerize -wait tcp://db:5432 -wait http://web:80
 You can optionally specify how long to wait for the services to become available by using the `-timeout #` argument (Default: 10 seconds).  If the timeout is reached and the service is still not available, the process exits with status code 1.
 
 ```
-$ dockerize -wait tcp://db:5432 -wait http://web:80 -timeout 10
+$ dockerize -wait tcp://db:5432 -wait http://web:80 -timeout 10s
 ```
 
 See [this issue](https://github.com/docker/compose/issues/374#issuecomment-126312313) for a deeper discussion, and why support isn't and won't be available in the Docker ecosystem itself.
