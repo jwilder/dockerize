@@ -1,20 +1,31 @@
-FROM ubuntu:14.04
+FROM nginx:1.9
 MAINTAINER Jason Wilder mail@jasonwilder.com
 
-# Install Nginx.
-RUN echo "deb http://ppa.launchpad.net/nginx/stable/ubuntu trusty main" > /etc/apt/sources.list.d/nginx-stable-trusty.list
-RUN echo "deb-src http://ppa.launchpad.net/nginx/stable/ubuntu trusty main" >> /etc/apt/sources.list.d/nginx-stable-trusty.list
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys C300EE8C
-RUN apt-get update
-RUN apt-get install -y  wget nginx
+# RUN wget https://github.com/markriggins/dockerize/releases/download/v0.2.0/dockerize-linux-amd64-v0.0.4.tar.gz
+# RUN tar -C /usr/local/bin -xvzf dockerize-linux-amd64-v0.2.0.tar.gz
 
-RUN wget https://github.com/jwilder/dockerize/releases/download/v0.0.4/dockerize-linux-amd64-v0.0.4.tar.gz
-RUN tar -C /usr/local/bin -xvzf dockerize-linux-amd64-v0.0.4.tar.gz
+COPY .dockerize_linux_amd64.tar.gz /tmp/
+RUN  cd /usr/local/bin && \
+    tar -xzv --strip-components=1 -f /tmp/.d*.gz dockerize_linux_amd64/dockerize && \
+    rm /tmp/.d*.gz
 
-RUN echo "daemon off;" >> /etc/nginx/nginx.conf
-
-ADD default.tmpl /etc/nginx/sites-available/default.tmpl
+COPY default.tmpl /etc/nginx/sites-available/default.tmpl
+COPY overlays /tmp/overlays
 
 EXPOSE 80
 
-CMD ["dockerize", "-template", "/etc/nginx/sites-available/default.tmpl:/etc/nginx/sites-available/default", "-stdout", "/var/log/nginx/access.log", "-stderr", "/var/log/nginx/error.log", "nginx"]
+ENV DEPLOYMENT_ENV=staging
+
+#  These options do not work well on virtualbox osx -- it pegs one CPU
+#     "-poll", \
+#     "-stdout", "/var/log/nginx/access.log", \
+#     "-stderr", "/var/log/nginx/error.log", \
+
+CMD [ "dockerize", \
+     "-template", "/etc/nginx/sites-available/default.tmpl:/etc/nginx/sites-available/default", \
+     "-overlay", "/tmp/overlays/_common/html:/usr/share/nginx/", \
+     "-overlay", "/tmp/overlays/{{ .Env.DEPLOYMENT_ENV }}/html:/usr/share/nginx/", \
+     "-poll", \
+     "-stdout", "/var/log/nginx/access.log", \
+     "-stderr", "/var/log/nginx/error.log", \
+     "--", "nginx", "-g", "daemon off;"]

@@ -1,0 +1,5 @@
+#
+# Prod robots.txt file
+#
+User-agent: *
+Allow: /
