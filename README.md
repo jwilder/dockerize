@@ -130,6 +130,7 @@ There are a few built in functions as well:
   * `parseUrl $url` - Parses a URL into it's [protocol, scheme, host, etc. parts][go.url.URL]. Alias for [`url.Parse`][go.url.Parse]
   * `atoi $value` - Parses a string $value into an int. `{{ if (gt (atoi .Env.NUM_THREADS) 1) }}`
   * `add $arg1 $arg` - Performs integer addition. `{{ add (atoi .Env.SHARD_NUM) -1 }}`
+  * `times n` - Performs in action n times inbetween init and end `{{ range $i := times n}} CODE {{end}}`
 
 ## License
 
