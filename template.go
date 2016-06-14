@@ -68,6 +68,14 @@ func add(arg1, arg2 int) int {
 	return arg1 + arg2
 }
 
+func times(n int) []int {
+	var si []int
+	for i := 1; i <= n; i++ {
+		si = append(si, i)
+	}
+	return si
+}
+
 func generateFile(templatePath, destPath string) bool {
 	tmpl := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
 		"contains": contains,
@@ -78,6 +86,7 @@ func generateFile(templatePath, destPath string) bool {
 		"parseUrl": parseUrl,
 		"atoi":     strconv.Atoi,
 		"add":      add,
+		"times":    times,
 	})
 
 	if len(delims) > 0 {
