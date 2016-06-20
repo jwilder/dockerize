@@ -188,13 +188,13 @@ func main() {
 			}
 			template, dest = parts[0], parts[1]
 		}
-		 _, err := os.Stat(dest)
+		_, err := os.Stat(dest)
 		if err != nil || forceFlag {
-      generateFile(template, dest)
-    } else {
-      log.Printf("file \"%s\" exists, template not generated", dest)
-    }
-		
+			generateFile(template, dest)
+		} else {
+			log.Printf("file \"%s\" exists, template not generated", dest)
+		}
+
 	}
 
 	waitForDependencies()
