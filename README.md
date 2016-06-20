@@ -91,6 +91,13 @@ If your file uses `{{` and `}}` as part of it's syntax, you can change the templ
 $ dockerize -delims "<%:%>"
 ```
 
+If the destination file already exists, dockerize will refuse to overwrite it. The -force flag overrides this behaviour.
+
+```
+$ dockerize -force -template template1.tmpl:file
+```
+
+
 ## Waiting for other dependencies
 
 It is common when using tools like [Docker Compose](https://docs.docker.com/compose/) to depend on services in other linked containers, however oftentimes relying on [links](https://docs.docker.com/compose/compose-file/#links) is not enough - whilst the container itself may have _started_, the _service(s)_ within it may not yet be ready - resulting in shell script hacks to work around race conditions.
