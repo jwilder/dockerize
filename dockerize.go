@@ -22,7 +22,7 @@ type Context struct {
 }
 
 type HttpHeader struct {
-	name string
+	name  string
 	value string
 }
 
@@ -47,7 +47,7 @@ var (
 	headersFlag     sliceVar
 	delimsFlag      string
 	delims          []string
-	headers			[]HttpHeader
+	headers         []HttpHeader
 	waitFlag        hostFlagsVar
 	waitTimeoutFlag time.Duration
 	dependencyChan  chan struct{}
@@ -200,7 +200,7 @@ func main() {
 			if len(parts) != 2 {
 				log.Fatalf(errMsg, headersFlag)
 			}
-			headers = append(headers, HttpHeader{ name: parts[0], value: parts[1]})
+			headers = append(headers, HttpHeader{name: parts[0], value: parts[1]})
 		} else {
 			log.Fatalf(errMsg, headersFlag)
 		}
