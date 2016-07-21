@@ -48,6 +48,7 @@ var (
 	delimsFlag      string
 	delims          []string
 	headers         []HttpHeader
+	urls            []url.URL
 	waitFlag        hostFlagsVar
 	waitTimeoutFlag time.Duration
 	dependencyChan  chan struct{}
@@ -78,12 +79,8 @@ func waitForDependencies() {
 	dependencyChan := make(chan struct{})
 
 	go func() {
-		for _, host := range waitFlag {
-			log.Println("Waiting for host:", host)
-			u, err := url.Parse(host)
-			if err != nil {
-				log.Fatalf("bad hostname provided: %s. %s", host, err.Error())
-			}
+		for _, u := range urls {
+			log.Println("Waiting for host:", u.Host)
 
 			switch u.Scheme {
 			case "tcp", "tcp4", "tcp6":
@@ -110,7 +107,7 @@ func waitForDependencies() {
 								req.Header.Add(header.name, header.value)
 							}
 						}
-						resp, _ := client.Do(req)
+						resp, err := client.Do(req)
 						if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
 							log.Printf("Received %d from %s\n", resp.StatusCode, u.String())
 							return
@@ -193,7 +190,20 @@ func main() {
 		}
 	}
 
+	for _, host := range waitFlag {
+		u, err := url.Parse(host)
+		if err != nil {
+			log.Fatalf("bad hostname provided: %s. %s", host, err.Error())
+		}
+		urls = append(urls, *u)
+	}
+
 	for _, h := range headersFlag {
+		//validate headers need -wait options
+		if len(waitFlag) == 0 {
+			log.Fatalf("-wait-http-header \"%s\" provided with no -wait option", h)
+		}
+
 		const errMsg = "bad HTTP Headers argument: %s. expected \"headerName: headerValue\""
 		if strings.Contains(h, ":") {
 			parts := strings.Split(h, ":")
