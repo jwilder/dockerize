@@ -94,7 +94,7 @@ $ dockerize -delims "<%:%>"
 Http headers can be specified for http/https protocols.
 
 ```
-$ dockerize -wait http://web:80 -header "Authorization:Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ=="
+$ dockerize -wait http://web:80 -wait-http-header "Authorization:Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ=="
 ```
 
 ## Waiting for other dependencies
