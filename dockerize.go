@@ -21,6 +21,11 @@ type hostFlagsVar []string
 type Context struct {
 }
 
+type HttpHeader struct {
+	name  string
+	value string
+}
+
 func (c *Context) Env() map[string]string {
 	env := make(map[string]string)
 	for _, i := range os.Environ() {
@@ -39,8 +44,11 @@ var (
 	templatesFlag   sliceVar
 	stdoutTailFlag  sliceVar
 	stderrTailFlag  sliceVar
+	headersFlag     sliceVar
 	delimsFlag      string
 	delims          []string
+	headers         []HttpHeader
+	urls            []url.URL
 	waitFlag        hostFlagsVar
 	waitTimeoutFlag time.Duration
 	dependencyChan  chan struct{}
@@ -71,12 +79,8 @@ func waitForDependencies() {
 	dependencyChan := make(chan struct{})
 
 	go func() {
-		for _, host := range waitFlag {
-			log.Println("Waiting for host:", host)
-			u, err := url.Parse(host)
-			if err != nil {
-				log.Fatalf("bad hostname provided: %s. %s", host, err.Error())
-			}
+		for _, u := range urls {
+			log.Println("Waiting for host:", u.Host)
 
 			switch u.Scheme {
 			case "tcp", "tcp4", "tcp6":
@@ -96,7 +100,14 @@ func waitForDependencies() {
 				go func() {
 					defer wg.Done()
 					for {
-						resp, err := http.Get(u.String())
+						client := &http.Client{}
+						req, _ := http.NewRequest("GET", u.String(), nil)
+						if len(headers) > 0 {
+							for _, header := range headers {
+								req.Header.Add(header.name, header.value)
+							}
+						}
+						resp, err := client.Do(req)
 						if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
 							log.Printf("Received %d from %s\n", resp.StatusCode, u.String())
 							return
@@ -155,6 +166,7 @@ func main() {
 	flag.Var(&stdoutTailFlag, "stdout", "Tails a file to stdout. Can be passed multiple times")
 	flag.Var(&stderrTailFlag, "stderr", "Tails a file to stderr. Can be passed multiple times")
 	flag.StringVar(&delimsFlag, "delims", "", `template tag delimiters. default "{{":"}}" `)
+	flag.Var(&headersFlag, "wait-http-header", "HTTP headers, colon separated. e.g \"Accept-Encoding: gzip\". Can be passed multiple times")
 	flag.Var(&waitFlag, "wait", "Host (tcp/tcp4/tcp6/http/https) to wait for before this container starts. Can be passed multiple times. e.g. tcp://db:5432")
 	flag.DurationVar(&waitTimeoutFlag, "timeout", 10*time.Second, "Host wait timeout")
 
@@ -177,6 +189,34 @@ func main() {
 			log.Fatalf("bad delimiters argument: %s. expected \"left:right\"", delimsFlag)
 		}
 	}
+
+	for _, host := range waitFlag {
+		u, err := url.Parse(host)
+		if err != nil {
+			log.Fatalf("bad hostname provided: %s. %s", host, err.Error())
+		}
+		urls = append(urls, *u)
+	}
+
+	for _, h := range headersFlag {
+		//validate headers need -wait options
+		if len(waitFlag) == 0 {
+			log.Fatalf("-wait-http-header \"%s\" provided with no -wait option", h)
+		}
+
+		const errMsg = "bad HTTP Headers argument: %s. expected \"headerName: headerValue\""
+		if strings.Contains(h, ":") {
+			parts := strings.Split(h, ":")
+			if len(parts) != 2 {
+				log.Fatalf(errMsg, headersFlag)
+			}
+			headers = append(headers, HttpHeader{name: strings.TrimSpace(parts[0]), value: strings.TrimSpace(parts[1])})
+		} else {
+			log.Fatalf(errMsg, headersFlag)
+		}
+
+	}
+
 	for _, t := range templatesFlag {
 		template, dest := t, ""
 		if strings.Contains(t, ":") {
