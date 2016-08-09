@@ -88,7 +88,11 @@ func waitForDependencies() {
 				go func() {
 					defer wg.Done()
 					for {
-						conn, _ := net.DialTimeout(u.Scheme, u.Host, waitTimeoutFlag)
+						conn, err := net.DialTimeout(u.Scheme, u.Host, waitTimeoutFlag)
+						if err != nil {
+							log.Printf("Problem with dial: %v. Sleeping 5s\n", err.Error())
+							time.Sleep(5 * time.Second)
+						}
 						if conn != nil {
 							log.Println("Connected to", u.String())
 							return
