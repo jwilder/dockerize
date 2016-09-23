@@ -1,4 +1,10 @@
+github.com/elgs/gojq 81fa9a608a130323eaf4b4fc00224f7a467ffbd1
+github.com/elgs/gosplitargs e9cf3de21e146ace7f4a8a42af3d51caf7fe2f3b
+github.com/fsnotify/fsnotify f12c6236fe7b5cf6bcf30e5935d08cb079d78334
+github.com/go-fsnotify/fsnotify f12c6236fe7b5cf6bcf30e5935d08cb079d78334
 github.com/hpcloud/tail 05d326f7170255d4f0c2a57dd00268b9beeb6e59
+github.com/stretchr/testify d77da356e56a7428ad25149ca77381849a6a5232
 golang.org/x/net 972f0c5fbe4ae29e666c3f78c3ed42ae7a448b0a
+golang.org/x/sys 8f0908ab3b2457e2e15403d3697c9ef5cb4b57a9
 gopkg.in/fsnotify.v0 ea925a0a47d225b2ca7f9932b01d2ed4f3ec74f6
 gopkg.in/tomb.v1 c131134a1947e9afd9cecfe11f4c6dff0732ae58
