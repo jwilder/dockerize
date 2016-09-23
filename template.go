@@ -10,6 +10,8 @@ import (
 	"strings"
 	"syscall"
 	"text/template"
+
+	"github.com/elgs/gojq"
 )
 
 func exists(path string) (bool, error) {
@@ -76,19 +78,32 @@ func isTrue(s string) bool {
 	return false
 }
 
+func jsonQuery(jsonObj string, query string) (interface{}, error) {
+	parser, err := gojq.NewStringQuery(jsonObj)
+	if err != nil {
+		return "", err
+	}
+	res, err := parser.Query(query)
+	if err != nil {
+		return "", err
+	}
+	return res, nil
+}
+
 func generateFile(templatePath, destPath string) bool {
 	tmpl := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
-		"contains": contains,
-		"exists":   exists,
-		"split":    strings.Split,
-		"replace":  strings.Replace,
-		"default":  defaultValue,
-		"parseUrl": parseUrl,
-		"atoi":     strconv.Atoi,
-		"add":      add,
-		"isTrue":   isTrue,
-		"lower":    strings.ToLower,
-		"upper":    strings.ToUpper,
+		"contains":  contains,
+		"exists":    exists,
+		"split":     strings.Split,
+		"replace":   strings.Replace,
+		"default":   defaultValue,
+		"parseUrl":  parseUrl,
+		"atoi":      strconv.Atoi,
+		"add":       add,
+		"isTrue":    isTrue,
+		"lower":     strings.ToLower,
+		"upper":     strings.ToUpper,
+		"jsonQuery": jsonQuery,
 	})
 
 	if len(delims) > 0 {

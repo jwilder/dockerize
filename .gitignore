@@ -25,3 +25,5 @@ _testmain.go
 *.prof
 
 # Created by .ignore support plugin (hsz.mobi)
+
+dockerize
