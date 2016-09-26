@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -41,17 +42,18 @@ var (
 	poll         bool
 	wg           sync.WaitGroup
 
-	templatesFlag   sliceVar
-	stdoutTailFlag  sliceVar
-	stderrTailFlag  sliceVar
-	headersFlag     sliceVar
-	delimsFlag      string
-	delims          []string
-	headers         []HttpHeader
-	urls            []url.URL
-	waitFlag        hostFlagsVar
-	waitTimeoutFlag time.Duration
-	dependencyChan  chan struct{}
+	templatesFlag    sliceVar
+	templateDirsFlag sliceVar
+	stdoutTailFlag   sliceVar
+	stderrTailFlag   sliceVar
+	headersFlag      sliceVar
+	delimsFlag       string
+	delims           []string
+	headers          []HttpHeader
+	urls             []url.URL
+	waitFlag         hostFlagsVar
+	waitTimeoutFlag  time.Duration
+	dependencyChan   chan struct{}
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -166,7 +168,7 @@ func main() {
 
 	flag.BoolVar(&version, "version", false, "show version")
 	flag.BoolVar(&poll, "poll", false, "enable polling")
-	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times")
+	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times. Does also support directories")
 	flag.Var(&stdoutTailFlag, "stdout", "Tails a file to stdout. Can be passed multiple times")
 	flag.Var(&stderrTailFlag, "stderr", "Tails a file to stderr. Can be passed multiple times")
 	flag.StringVar(&delimsFlag, "delims", "", `template tag delimiters. default "{{":"}}" `)
@@ -230,7 +232,37 @@ func main() {
 			}
 			template, dest = parts[0], parts[1]
 		}
-		generateFile(template, dest)
+
+		fi, err := os.Stat(template)
+		if err != nil {
+			log.Fatalf("unable to stat %s, error: %s", template, err)
+		}
+		if fi.IsDir() {
+			if dest != "" {
+				fiDest, err := os.Stat(dest)
+				if err != nil {
+					log.Fatalf("unable to stat %s, error: %s", dest, err)
+				}
+				if !fiDest.IsDir() {
+					log.Fatalf("if template is a directory, dest must also be a directory (or stdout)")
+				}
+			}
+
+			files, err := ioutil.ReadDir(template)
+			if err != nil {
+				log.Fatalf("bad directory: %s, error: %s", template, err)
+			}
+
+			for _, file := range files {
+				if dest == "" {
+					generateFile(template+string(os.PathSeparator)+file.Name(), "")
+				} else {
+					generateFile(template+string(os.PathSeparator)+file.Name(), dest+string(os.PathSeparator)+file.Name())
+				}
+			}
+		} else {
+			generateFile(template, dest)
+		}
 	}
 
 	waitForDependencies()
