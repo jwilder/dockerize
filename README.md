@@ -141,6 +141,8 @@ There are a few built in functions as well:
   * `upper $value` - Uppercase a string.
   * `jsonQuery $json $query` - Returns the result of a selection query against a json document.
 
+Additionally all the template functions provided by [sprig](https://github.com/Masterminds/sprig#functions) are availlable with the prefix `sprig_` (e.g. the sprig function `trim` is accessed via `sprig_trim`).
+
 ### jsonQuery
 
 Objects and fields are accessed by name. Array elements are accessed by index in square brackets (e.g. `[1]`). Nested elements are separated by dots (`.`).
