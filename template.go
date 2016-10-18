@@ -97,17 +97,17 @@ func generateFile(templatePath, destPath string) bool {
 		sprigFuncs["sprig_"+k] = v
 	}
 	tmpl := template.New(filepath.Base(templatePath)).Funcs(sprigFuncs).Funcs(template.FuncMap{
-		"contains": contains,
-		"exists":   exists,
-		"split":    strings.Split,
-		"replace":  strings.Replace,
-		"default":  defaultValue,
-		"parseUrl": parseUrl,
-		"atoi":     strconv.Atoi,
-		"add":      add,
-		"isTrue":   isTrue,
-		"lower":    strings.ToLower,
-		"upper":    strings.ToUpper,
+		"contains":  contains,
+		"exists":    exists,
+		"split":     strings.Split,
+		"replace":   strings.Replace,
+		"default":   defaultValue,
+		"parseUrl":  parseUrl,
+		"atoi":      strconv.Atoi,
+		"add":       add,
+		"isTrue":    isTrue,
+		"lower":     strings.ToLower,
+		"upper":     strings.ToUpper,
 		"jsonQuery": jsonQuery,
 	})
 
