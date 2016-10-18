@@ -12,6 +12,7 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig"
+	"github.com/jwilder/gojq"
 )
 
 func exists(path string) (bool, error) {
@@ -78,6 +79,18 @@ func isTrue(s string) bool {
 	return false
 }
 
+func jsonQuery(jsonObj string, query string) (interface{}, error) {
+	parser, err := gojq.NewStringQuery(jsonObj)
+	if err != nil {
+		return "", err
+	}
+	res, err := parser.Query(query)
+	if err != nil {
+		return "", err
+	}
+	return res, nil
+}
+
 func generateFile(templatePath, destPath string) bool {
 	sprigFuncs := map[string]interface{}{}
 	for k, v := range sprig.TxtFuncMap() {
@@ -95,6 +108,7 @@ func generateFile(templatePath, destPath string) bool {
 		"isTrue":   isTrue,
 		"lower":    strings.ToLower,
 		"upper":    strings.ToUpper,
+		"jsonQuery": jsonQuery,
 	})
 
 	if len(delims) > 0 {

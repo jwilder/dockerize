@@ -139,6 +139,31 @@ There are a few built in functions as well:
   * `isTrue $value` - Parses a string $value to a boolean value. `{{ if isTrue .Env.ENABLED }}`
   * `lower $value` - Lowercase a string.
   * `upper $value` - Uppercase a string.
+  * `jsonQuery $json $query` - Returns the result of a selection query against a json document.
+
+### jsonQuery
+
+Objects and fields are accessed by name. Array elements are accessed by index in square brackets (e.g. `[1]`). Nested elements are separated by dots (`.`).
+
+**Examples:**
+
+With the following JSON in `.Env.SERVICES`
+
+```
+{
+  "services": [
+    {
+      "name": "service1",
+      "port": 8000,
+    },{
+      "name": "service2",
+      "port": 9000,
+    }
+  ]
+}
+```
+
+the template expression `jsonQuery .Env.SERVICES "services.[1].port"` returns `9000`.
 
 ## License
 
