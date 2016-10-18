@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"text/template"
 
-	"github.com/elgs/gojq"
+	"github.com/jwilder/gojq"
 )
 
 func exists(path string) (bool, error) {
