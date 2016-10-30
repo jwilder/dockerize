@@ -41,17 +41,18 @@ var (
 	poll         bool
 	wg           sync.WaitGroup
 
-	templatesFlag   sliceVar
-	stdoutTailFlag  sliceVar
-	stderrTailFlag  sliceVar
-	headersFlag     sliceVar
-	delimsFlag      string
-	delims          []string
-	headers         []HttpHeader
-	urls            []url.URL
-	waitFlag        hostFlagsVar
-	waitTimeoutFlag time.Duration
-	dependencyChan  chan struct{}
+	templatesFlag    sliceVar
+	templatesDirFlag sliceVar
+	stdoutTailFlag   sliceVar
+	stderrTailFlag   sliceVar
+	headersFlag      sliceVar
+	delimsFlag       string
+	delims           []string
+	headers          []HttpHeader
+	urls             []url.URL
+	waitFlag         hostFlagsVar
+	waitTimeoutFlag  time.Duration
+	dependencyChan   chan struct{}
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -166,6 +167,7 @@ func main() {
 
 	flag.BoolVar(&version, "version", false, "show version")
 	flag.BoolVar(&poll, "poll", false, "enable polling")
+	flag.Var(&templatesDirFlag, "template-dir", "Template Directory (templateDir:destDir).")
 	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times")
 	flag.Var(&stdoutTailFlag, "stdout", "Tails a file to stdout. Can be passed multiple times")
 	flag.Var(&stderrTailFlag, "stderr", "Tails a file to stderr. Can be passed multiple times")
@@ -231,6 +233,19 @@ func main() {
 			template, dest = parts[0], parts[1]
 		}
 		generateFile(template, dest)
+	}
+
+	for _, t := range templatesDirFlag {
+		if strings.Contains(t, ":") {
+			parts := strings.Split(t, ":")
+			if len(parts) != 2 {
+				log.Fatalf("bad template argument: %s. expected \"templateDir:destDir\"", t)
+			}
+			templateDir, destDir := parts[0], parts[1]
+			processTemplates(templateDir, destDir)
+		} else {
+			log.Fatalf("bad template directory arugment: %s. expected \"templateDir:destDir\"", t)
+		}
 	}
 
 	waitForDependencies()
