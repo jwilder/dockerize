@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -21,18 +22,33 @@ type MySuite struct {
 var _ = Suite(&MySuite{})
 
 func (s *MySuite) SetUpSuite(c *C) {
-	s.dir = c.MkDir()
+	// s.dir = c.MkDir()
+	os.Mkdir("target", 0777)
+	s.dir = "target"
 }
 
 func (s *MySuite) TestJsonTemplate(c *C) {
 
 	templatePath := filepath.Join("examples", "json", "json-example")
-	answerFile := filepath.Join("test", "rendered-json-example")
+	answerFile := filepath.Join("test", "expected", "rendered-json-example")
 	destPath := filepath.Join(s.dir, "output-json-example")
-
 	generateFile(templatePath, destPath)
-
 	fileCompare(answerFile, destPath, c)
+}
+
+// Test walking through a tree of templates
+func (s *MySuite) TestDirTemplates(c *C) {
+	dirpath := filepath.Join("test", "fixtures")
+	processTemplates(dirpath, s.dir)
+	os.Setenv("VAL_1", "one")
+	os.Setenv("VAL_2", "two")
+	fileCompare(filepath.Join("test", "expected", "one.conf"),
+		filepath.Join(s.dir, "expected",
+			"etc", "sample", "one.conf"), c)
+	fileCompare(filepath.Join("test", "expected", "two.txt"),
+		filepath.Join(s.dir, "expected",
+			"etc", "conf", "two.txt"), c)
+
 }
 
 func fileCompare(expectedFile, actualFile string, c *C) {
@@ -44,7 +60,6 @@ func fileCompare(expectedFile, actualFile string, c *C) {
 	if err != nil {
 		c.Errorf("No file %s", actualFile)
 	}
-
 	c.Assert(strings.TrimSpace(string(actualResult)),
 		Equals, strings.TrimSpace(string(expectedResult)))
 }

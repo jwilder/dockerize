@@ -139,3 +139,43 @@ func generateFile(templatePath, destPath string) bool {
 
 	return true
 }
+
+// TODO - make this be able to be set from CLI?
+var templateSuffix = ".tpl"
+
+func processTemplates(sourceDirPath, destDirPath string) {
+
+	walker := func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			log.Fatalf("Could not process %s: %s", sourceDirPath, err)
+			return nil
+		}
+		if strings.HasSuffix(info.Name(), templateSuffix) {
+			destFileName := strings.TrimSuffix(info.Name(), templateSuffix)
+
+			relPath, err := filepath.Rel(sourceDirPath, path)
+			if err != nil {
+				log.Fatalf("Could not split %q into relative path with base %q",
+					path, sourceDirPath)
+			}
+			dir, _ := filepath.Split(relPath)
+			// if err != nil {
+			// 	log.Fatalf("Could not get directory file split from %q", relPath)
+			// }
+
+			destDir := filepath.Join(destDirPath, dir)
+			os.MkdirAll(destDir, 0755)
+			destFileName = filepath.Join(destDir, destFileName)
+
+			//Drop the first parth, which shoudl be the sourceDirPath
+			//and the last part which is
+			log.Println("writing to ", destFileName)
+
+			generateFile(path, destFileName)
+
+		}
+		return nil
+	}
+	filepath.Walk(sourceDirPath, walker)
+
+}
