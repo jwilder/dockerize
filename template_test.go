@@ -22,9 +22,9 @@ type MySuite struct {
 var _ = Suite(&MySuite{})
 
 func (s *MySuite) SetUpSuite(c *C) {
-	// s.dir = c.MkDir()
-	os.Mkdir("target", 0777)
-	s.dir = "target"
+	os.Setenv("VAL_1", "one")
+	os.Setenv("VAL_2", "two")
+	s.dir = c.MkDir()
 }
 
 func (s *MySuite) TestJsonTemplate(c *C) {
@@ -40,13 +40,12 @@ func (s *MySuite) TestJsonTemplate(c *C) {
 func (s *MySuite) TestDirTemplates(c *C) {
 	dirpath := filepath.Join("test", "fixtures")
 	processTemplates(dirpath, s.dir)
-	os.Setenv("VAL_1", "one")
-	os.Setenv("VAL_2", "two")
+
 	fileCompare(filepath.Join("test", "expected", "one.conf"),
-		filepath.Join(s.dir, "expected",
+		filepath.Join(s.dir,
 			"etc", "sample", "one.conf"), c)
 	fileCompare(filepath.Join("test", "expected", "two.txt"),
-		filepath.Join(s.dir, "expected",
+		filepath.Join(s.dir,
 			"etc", "conf", "two.txt"), c)
 
 }
