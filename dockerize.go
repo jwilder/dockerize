@@ -242,7 +242,7 @@ func main() {
 				log.Fatalf("bad template argument: %s. expected \"templateDir:destDir\"", t)
 			}
 			templateDir, destDir := parts[0], parts[1]
-			processTemplates(templateDir, destDir)
+			ProcessTemplates(templateDir, destDir)
 		} else {
 			log.Fatalf("bad template directory arugment: %s. expected \"templateDir:destDir\"", t)
 		}

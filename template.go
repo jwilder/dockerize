@@ -143,16 +143,25 @@ func generateFile(templatePath, destPath string) bool {
 // TODO - make this be able to be set from CLI?
 var templateSuffix = ".tpl"
 
-func processTemplates(sourceDirPath, destDirPath string) {
+// ProcessTemplates goes through entire directory
+// and will apply templates
+func ProcessTemplates(sourceDirPath, destDirPath string) {
 
 	walker := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			log.Fatalf("Could not process %s: %s", sourceDirPath, err)
 			return nil
 		}
-		if strings.HasSuffix(info.Name(), templateSuffix) {
-			destFileName := strings.TrimSuffix(info.Name(), templateSuffix)
 
+		var destFileName string
+
+		if !info.IsDir() {
+			// If the file ends in .tpl strip that, otherwise just use the filename
+			if strings.HasSuffix(info.Name(), templateSuffix) {
+				destFileName = strings.TrimSuffix(info.Name(), templateSuffix)
+			} else {
+				destFileName = info.Name()
+			}
 			relPath, err := filepath.Rel(sourceDirPath, path)
 			if err != nil {
 				log.Fatalf("Could not split %q into relative path with base %q",
@@ -172,9 +181,9 @@ func processTemplates(sourceDirPath, destDirPath string) {
 			log.Println("writing to ", destFileName)
 
 			generateFile(path, destFileName)
-
 		}
 		return nil
+
 	}
 	filepath.Walk(sourceDirPath, walker)
 
