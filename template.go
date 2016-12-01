@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
@@ -134,6 +135,33 @@ func generateFile(templatePath, destPath string) bool {
 		}
 		if err := dest.Chown(int(fi.Sys().(*syscall.Stat_t).Uid), int(fi.Sys().(*syscall.Stat_t).Gid)); err != nil {
 			log.Fatalf("unable to chown temp file: %s\n", err)
+		}
+	}
+
+	return true
+}
+
+func generateDir(templateDir, destDir string) bool {
+	if destDir != "" {
+		fiDest, err := os.Stat(destDir)
+		if err != nil {
+			log.Fatalf("unable to stat %s, error: %s", destDir, err)
+		}
+		if !fiDest.IsDir() {
+			log.Fatalf("if template is a directory, dest must also be a directory (or stdout)")
+		}
+	}
+
+	files, err := ioutil.ReadDir(templateDir)
+	if err != nil {
+		log.Fatalf("bad directory: %s, error: %s", templateDir, err)
+	}
+
+	for _, file := range files {
+		if destDir == "" {
+			generateFile(filepath.Join(templateDir, file.Name()), "")
+		} else {
+			generateFile(filepath.Join(templateDir, file.Name()), filepath.Join(destDir, file.Name()))
 		}
 	}
 

@@ -70,6 +70,14 @@ $ dockerize -template template1.tmpl
 
 ```
 
+Template may also be a directory. In this case all files within this directory are processed as template and stored with the same name in the destination directory.
+If the destination directory is omitted, the output is sent to `STDOUT`. The files in the source directory are processed in sorted order (as returned by `ioutil.ReadDir`).
+
+```
+$ dockerize -template src_dir:dest_dir
+
+```
+
 
 You can tail multiple files to `STDOUT` and `STDERR` by passing the options multiple times.
 
