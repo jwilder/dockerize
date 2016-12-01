@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -238,28 +237,7 @@ func main() {
 			log.Fatalf("unable to stat %s, error: %s", template, err)
 		}
 		if fi.IsDir() {
-			if dest != "" {
-				fiDest, err := os.Stat(dest)
-				if err != nil {
-					log.Fatalf("unable to stat %s, error: %s", dest, err)
-				}
-				if !fiDest.IsDir() {
-					log.Fatalf("if template is a directory, dest must also be a directory (or stdout)")
-				}
-			}
-
-			files, err := ioutil.ReadDir(template)
-			if err != nil {
-				log.Fatalf("bad directory: %s, error: %s", template, err)
-			}
-
-			for _, file := range files {
-				if dest == "" {
-					generateFile(template+string(os.PathSeparator)+file.Name(), "")
-				} else {
-					generateFile(template+string(os.PathSeparator)+file.Name(), dest+string(os.PathSeparator)+file.Name())
-				}
-			}
+			generateDir(template, dest)
 		} else {
 			generateFile(template, dest)
 		}
