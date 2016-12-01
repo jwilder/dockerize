@@ -6,6 +6,10 @@ LDFLAGS:=-X main.buildVersion=$(TAG)
 
 all: dockerize
 
+deps:
+	go get github.com/robfig/glock
+	glock sync -n < GLOCKFILE
+
 dockerize:
 	echo "Building dockerize"
 	go install -ldflags "$(LDFLAGS)"
@@ -14,7 +18,7 @@ dist-clean:
 	rm -rf dist
 	rm -f dockerize-linux-*.tar.gz
 
-dist: dist-clean
+dist: deps dist-clean
 	mkdir -p dist/linux/amd64 && GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o dist/linux/amd64/dockerize
 	mkdir -p dist/linux/armel && GOOS=linux GOARCH=arm GOARM=5 go build -ldflags "$(LDFLAGS)" -o dist/linux/armel/dockerize
 	mkdir -p dist/linux/armhf && GOOS=linux GOARCH=arm GOARM=6 go build -ldflags "$(LDFLAGS)" -o dist/linux/armhf/dockerize
