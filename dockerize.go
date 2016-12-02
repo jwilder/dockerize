@@ -42,7 +42,7 @@ var (
 	wg           sync.WaitGroup
 
 	templatesFlag    sliceVar
-	templatesDirFlag sliceVar
+	templateDirsFlag sliceVar
 	stdoutTailFlag   sliceVar
 	stderrTailFlag   sliceVar
 	headersFlag      sliceVar
@@ -136,6 +136,24 @@ func waitForDependencies() {
 
 }
 
+func waitForSocket(scheme, addr string, timeout time.Duration) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			conn, err := net.DialTimeout(scheme, addr, waitTimeoutFlag)
+			if err != nil {
+				log.Printf("Problem with dial: %v. Sleeping 5s\n", err.Error())
+				time.Sleep(5 * time.Second)
+			}
+			if conn != nil {
+				log.Printf("Connected to %s://%s\n", scheme, addr)
+				return
+			}
+		}
+	}()
+}
+
 func usage() {
 	println(`Usage: dockerize [options] [command]
 
@@ -167,13 +185,12 @@ func main() {
 
 	flag.BoolVar(&version, "version", false, "show version")
 	flag.BoolVar(&poll, "poll", false, "enable polling")
-	flag.Var(&templatesDirFlag, "template-dir", "Template Directory (templateDir:destDir).")
-	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times")
+	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times. Does also support directories")
 	flag.Var(&stdoutTailFlag, "stdout", "Tails a file to stdout. Can be passed multiple times")
 	flag.Var(&stderrTailFlag, "stderr", "Tails a file to stderr. Can be passed multiple times")
 	flag.StringVar(&delimsFlag, "delims", "", `template tag delimiters. default "{{":"}}" `)
 	flag.Var(&headersFlag, "wait-http-header", "HTTP headers, colon separated. e.g \"Accept-Encoding: gzip\". Can be passed multiple times")
-	flag.Var(&waitFlag, "wait", "Host (tcp/tcp4/tcp6/http/https) to wait for before this container starts. Can be passed multiple times. e.g. tcp://db:5432")
+	flag.Var(&waitFlag, "wait", "Host (tcp/tcp4/tcp6/http/https/unix) to wait for before this container starts. Can be passed multiple times. e.g. tcp://db:5432")
 	flag.DurationVar(&waitTimeoutFlag, "timeout", 10*time.Second, "Host wait timeout")
 
 	flag.Usage = usage
@@ -232,19 +249,15 @@ func main() {
 			}
 			template, dest = parts[0], parts[1]
 		}
-		generateFile(template, dest)
-	}
 
-	for _, t := range templatesDirFlag {
-		if strings.Contains(t, ":") {
-			parts := strings.Split(t, ":")
-			if len(parts) != 2 {
-				log.Fatalf("bad template argument: %s. expected \"templateDir:destDir\"", t)
-			}
-			templateDir, destDir := parts[0], parts[1]
-			ProcessTemplates(templateDir, destDir)
+		fi, err := os.Stat(template)
+		if err != nil {
+			log.Fatalf("unable to stat %s, error: %s", template, err)
+		}
+		if fi.IsDir() {
+			generateDir(template, dest)
 		} else {
-			log.Fatalf("bad template directory arugment: %s. expected \"templateDir:destDir\"", t)
+			generateFile(template, dest)
 		}
 	}
 

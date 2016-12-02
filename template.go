@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
@@ -140,51 +141,33 @@ func generateFile(templatePath, destPath string) bool {
 	return true
 }
 
-// TODO - make this be able to be set from CLI?
-var templateSuffix = ".tpl"
-
-// ProcessTemplates goes through entire directory
-// and will apply templates
-func ProcessTemplates(sourceDirPath, destDirPath string) {
-
-	walker := func(path string, info os.FileInfo, err error) error {
+func generateDir(templateDir, destDir string) bool {
+	if destDir != "" {
+		fiDest, err := os.Stat(destDir)
 		if err != nil {
-			log.Fatalf("Could not process %s: %s", sourceDirPath, err)
-			return nil
+			log.Fatalf("unable to stat %s, error: %s", destDir, err)
 		}
-
-		var destFileName string
-
-		if !info.IsDir() {
-			// If the file ends in .tpl strip that, otherwise just use the filename
-			if strings.HasSuffix(info.Name(), templateSuffix) {
-				destFileName = strings.TrimSuffix(info.Name(), templateSuffix)
-			} else {
-				destFileName = info.Name()
-			}
-			relPath, err := filepath.Rel(sourceDirPath, path)
-			if err != nil {
-				log.Fatalf("Could not split %q into relative path with base %q",
-					path, sourceDirPath)
-			}
-			dir, _ := filepath.Split(relPath)
-			// if err != nil {
-			// 	log.Fatalf("Could not get directory file split from %q", relPath)
-			// }
-
-			destDir := filepath.Join(destDirPath, dir)
-			os.MkdirAll(destDir, 0755)
-			destFileName = filepath.Join(destDir, destFileName)
-
-			//Drop the first parth, which shoudl be the sourceDirPath
-			//and the last part which is
-			log.Println("writing to ", destFileName)
-
-			generateFile(path, destFileName)
+		if !fiDest.IsDir() {
+			log.Fatalf("if template is a directory, dest must also be a directory (or stdout)")
 		}
-		return nil
-
 	}
-	filepath.Walk(sourceDirPath, walker)
 
+	files, err := ioutil.ReadDir(templateDir)
+	if err != nil {
+		log.Fatalf("bad directory: %s, error: %s", templateDir, err)
+	}
+
+	for _, file := range files {
+		if file.IsDir() {
+			nextDestination := filepath.Join(destDir, file.Name())
+			os.Mkdir(nextDestination, file.Mode())
+			generateDir(filepath.Join(templateDir, file.Name()), nextDestination)
+		} else if destDir == "" {
+			generateFile(filepath.Join(templateDir, file.Name()), "")
+		} else {
+			generateFile(filepath.Join(templateDir, file.Name()), filepath.Join(destDir, file.Name()))
+		}
+	}
+
+	return true
 }

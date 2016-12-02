@@ -39,7 +39,7 @@ func (s *MySuite) TestJsonTemplate(c *C) {
 // Test walking through a tree of templates
 func (s *MySuite) TestDirTemplates(c *C) {
 	dirpath := filepath.Join("test", "fixtures")
-	ProcessTemplates(dirpath, s.dir)
+	generateDir(dirpath, s.dir)
 
 	fileCompare(filepath.Join("test", "expected", "one.conf"),
 		filepath.Join(s.dir,
