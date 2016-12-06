@@ -42,6 +42,16 @@ RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSI
     && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
 ```
 
+* Docker Base Image
+
+The `jwilder/dockerize` image is a base image that can be used that is based on `alpine linux`.  `dockerize` is installed in the `$PATH` and can be used directly.
+
+```
+FROM jwilder/dockerize:v0.3.0
+...
+ENTRYPOINT dockerize ...
+```
+
 ## Usage
 
 dockerize works by wrapping the call to your application using the `ENTRYPOINT` or `CMD` directives.
