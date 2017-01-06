@@ -90,7 +90,7 @@ func waitForDependencies() {
 				waitForSocket(u.Scheme, u.Path, waitTimeoutFlag)
 			case "http", "https":
 				wg.Add(1)
-				go func() {
+				go func(u url.URL) {
 					defer wg.Done()
 					for {
 						client := &http.Client{}
@@ -106,7 +106,7 @@ func waitForDependencies() {
 							return
 						}
 					}
-				}()
+				}(u)
 			default:
 				log.Fatalf("invalid host protocol provided: %s. supported protocols are: tcp, tcp4, tcp6 and http", u.Scheme)
 			}
