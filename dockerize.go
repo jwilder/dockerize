@@ -84,6 +84,22 @@ func waitForDependencies() {
 			log.Println("Waiting for host:", u.Host)
 
 			switch u.Scheme {
+			case "unix":
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for {
+						conn, err := net.DialTimeout(u.Scheme, u.Path, waitTimeoutFlag)
+						if err != nil {
+							log.Printf("Problem with dial: %v. Sleeping 5s\n", err.Error())
+							time.Sleep(5 * time.Second)
+						}
+						if conn != nil {
+							log.Println("Connected to", u.String())
+							return
+						}
+					}
+				}()
 			case "tcp", "tcp4", "tcp6":
 				waitForSocket(u.Scheme, u.Host, waitTimeoutFlag)
 			case "unix":
