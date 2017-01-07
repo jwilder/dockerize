@@ -9,17 +9,14 @@
     }
   ]
 }` }}
-
     NAME0={{ jsonQuery $jsonDoc "services.[0].name" }}
     PORT0={{ jsonQuery $jsonDoc "services.[0].port" }}
     NAME1={{ jsonQuery $jsonDoc "services.[1].name" }}
     PORT1={{ jsonQuery $jsonDoc "services.[1].port" }}
-
     {{ range $index, $value := jsonQuery $jsonDoc "services" }}
         Index: {{ printf "%v" $index }}
         Name: {{ printf "%v" $value.name }}
         Port: {{ printf "%v" $value.port }}
         ---
     {{end}}
-
 {{end}}
