@@ -52,6 +52,7 @@ var (
 	urls             []url.URL
 	waitFlag         hostFlagsVar
 	waitTimeoutFlag  time.Duration
+	tailEndFlag      bool
 	dependencyChan   chan struct{}
 
 	ctx    context.Context
@@ -180,6 +181,7 @@ func main() {
 	flag.Var(&headersFlag, "wait-http-header", "HTTP headers, colon separated. e.g \"Accept-Encoding: gzip\". Can be passed multiple times")
 	flag.Var(&waitFlag, "wait", "Host (tcp/tcp4/tcp6/http/https/unix) to wait for before this container starts. Can be passed multiple times. e.g. tcp://db:5432")
 	flag.DurationVar(&waitTimeoutFlag, "timeout", 10*time.Second, "Host wait timeout")
+	flag.BoolVar(&tailEndFlag, "tail-end", false, "Follow stderr and stdout from end of file")
 
 	flag.Usage = usage
 	flag.Parse()
@@ -261,12 +263,12 @@ func main() {
 
 	for _, out := range stdoutTailFlag {
 		wg.Add(1)
-		go tailFile(ctx, out, poll, os.Stdout)
+		go tailFile(ctx, out, poll, os.Stdout, tailEndFlag)
 	}
 
 	for _, err := range stderrTailFlag {
 		wg.Add(1)
-		go tailFile(ctx, err, poll, os.Stderr)
+		go tailFile(ctx, err, poll, os.Stderr, tailEndFlag)
 	}
 
 	wg.Wait()
