@@ -56,6 +56,8 @@ var (
 
 	ctx    context.Context
 	cancel context.CancelFunc
+
+	waitResult map[string]bool
 )
 
 func (i *hostFlagsVar) String() string {
@@ -78,6 +80,7 @@ func (s *sliceVar) String() string {
 
 func waitForDependencies() {
 	dependencyChan := make(chan struct{})
+	waitResult = make(map[string]bool)
 
 	go func() {
 		for _, u := range urls {
@@ -103,6 +106,7 @@ func waitForDependencies() {
 						resp, err := client.Do(req)
 						if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
 							log.Printf("Received %d from %s\n", resp.StatusCode, u.String())
+							waitResult[u.String()] = true
 							return
 						}
 					}
@@ -119,6 +123,18 @@ func waitForDependencies() {
 	case <-dependencyChan:
 		break
 	case <-time.After(waitTimeoutFlag):
+		for _, u := range urls {
+			switch u.Scheme {
+			case "tcp", "tcp4", "tcp6", "unix":
+				if _, ok := waitResult[fmt.Sprintf("%s://%s", u.Scheme, u.Host)]; !ok {
+					log.Printf("Cannot connect to %s://%s.\n", u.Scheme, u.Host)
+				}
+			case "http", "https":
+				if _, ok := waitResult[u.String()]; !ok {
+					log.Printf("Cannot connect to %s.\n", u.String())
+				}
+			}
+		}
 		log.Fatalf("Timeout after %s waiting on dependencies to become available: %v", waitTimeoutFlag, waitFlag)
 	}
 
@@ -136,6 +152,7 @@ func waitForSocket(scheme, addr string, timeout time.Duration) {
 			}
 			if conn != nil {
 				log.Printf("Connected to %s://%s\n", scheme, addr)
+				waitResult[fmt.Sprintf("%s://%s", scheme, addr)] = true
 				return
 			}
 		}
