@@ -95,7 +95,7 @@ func jsonQuery(jsonObj string, query string) (interface{}, error) {
 func getCPUNum() []int {
 	var temp []int
 	for i := 0; i < runtime.NumCPU(); i++ {
-		temp = append(temp, i)
+		temp = append(temp, i+1)
 	}
 	return temp
 }
