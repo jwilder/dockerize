@@ -13,6 +13,7 @@ import (
 	"text/template"
 
 	"github.com/jwilder/gojq"
+	"runtime"
 )
 
 func exists(path string) (bool, error) {
@@ -91,6 +92,14 @@ func jsonQuery(jsonObj string, query string) (interface{}, error) {
 	return res, nil
 }
 
+func getCPUNum() []int {
+	var temp []int
+	for i := 0; i < runtime.NumCPU(); i++ {
+		temp = append(temp, i+1)
+	}
+	return temp
+}
+
 func generateFile(templatePath, destPath string) bool {
 	tmpl := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
 		"contains":  contains,
@@ -105,6 +114,7 @@ func generateFile(templatePath, destPath string) bool {
 		"lower":     strings.ToLower,
 		"upper":     strings.ToUpper,
 		"jsonQuery": jsonQuery,
+		"numCPU":    getCPUNum,
 	})
 
 	if len(delims) > 0 {
