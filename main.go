@@ -15,6 +15,8 @@ import (
 	"golang.org/x/net/context"
 )
 
+const defaultWaitRetryInterval = time.Second
+
 type sliceVar []string
 type hostFlagsVar []string
 
@@ -41,18 +43,19 @@ var (
 	poll         bool
 	wg           sync.WaitGroup
 
-	templatesFlag    sliceVar
-	templateDirsFlag sliceVar
-	stdoutTailFlag   sliceVar
-	stderrTailFlag   sliceVar
-	headersFlag      sliceVar
-	delimsFlag       string
-	delims           []string
-	headers          []HttpHeader
-	urls             []url.URL
-	waitFlag         hostFlagsVar
-	waitTimeoutFlag  time.Duration
-	dependencyChan   chan struct{}
+	templatesFlag     sliceVar
+	templateDirsFlag  sliceVar
+	stdoutTailFlag    sliceVar
+	stderrTailFlag    sliceVar
+	headersFlag       sliceVar
+	delimsFlag        string
+	delims            []string
+	headers           []HttpHeader
+	urls              []url.URL
+	waitFlag          hostFlagsVar
+	waitRetryInterval time.Duration
+	waitTimeoutFlag   time.Duration
+	dependencyChan    chan struct{}
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -81,7 +84,7 @@ func waitForDependencies() {
 
 	go func() {
 		for _, u := range urls {
-			log.Println("Waiting for host:", u.Host)
+			log.Println("Waiting for:", u.String())
 
 			switch u.Scheme {
 			case "tcp", "tcp4", "tcp6":
@@ -99,8 +102,8 @@ func waitForDependencies() {
 					for {
 						req, err := http.NewRequest("GET", u.String(), nil)
 						if err != nil {
-							log.Printf("Problem with dial: %v. Sleeping 5s\n", err.Error())
-							time.Sleep(5 * time.Second)
+							log.Printf("Problem with dial: %v. Sleeping %s\n", err.Error(), waitRetryInterval)
+							time.Sleep(waitRetryInterval)
 						}
 						if len(headers) > 0 {
 							for _, header := range headers {
@@ -110,14 +113,14 @@ func waitForDependencies() {
 
 						resp, err := client.Do(req)
 						if err != nil {
-							log.Printf("Problem with request: %s. Sleeping 5s\n", err.Error())
-							time.Sleep(5 * time.Second)
+							log.Printf("Problem with request: %s. Sleeping %s\n", err.Error(), waitRetryInterval)
+							time.Sleep(waitRetryInterval)
 						} else if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
 							log.Printf("Received %d from %s\n", resp.StatusCode, u.String())
 							return
 						} else {
-							log.Printf("Received %d from %s. Sleeping 5s\n", resp.StatusCode, u.String())
-							time.Sleep(5 * time.Second)
+							log.Printf("Received %d from %s. Sleeping %s\n", resp.StatusCode, u.String(), waitRetryInterval)
+							time.Sleep(waitRetryInterval)
 						}
 					}
 				}(u)
@@ -145,8 +148,8 @@ func waitForSocket(scheme, addr string, timeout time.Duration) {
 		for {
 			conn, err := net.DialTimeout(scheme, addr, waitTimeoutFlag)
 			if err != nil {
-				log.Printf("Problem with dial: %v. Sleeping 5s\n", err.Error())
-				time.Sleep(5 * time.Second)
+				log.Printf("Problem with dial: %v. Sleeping %s\n", err.Error(), waitRetryInterval)
+				time.Sleep(waitRetryInterval)
 			}
 			if conn != nil {
 				log.Printf("Connected to %s://%s\n", scheme, addr)
@@ -194,6 +197,7 @@ func main() {
 	flag.Var(&headersFlag, "wait-http-header", "HTTP headers, colon separated. e.g \"Accept-Encoding: gzip\". Can be passed multiple times")
 	flag.Var(&waitFlag, "wait", "Host (tcp/tcp4/tcp6/http/https/unix) to wait for before this container starts. Can be passed multiple times. e.g. tcp://db:5432")
 	flag.DurationVar(&waitTimeoutFlag, "timeout", 10*time.Second, "Host wait timeout")
+	flag.DurationVar(&waitRetryInterval, "wait-retry-interval", defaultWaitRetryInterval, "Duration to wait before retrying")
 
 	flag.Usage = usage
 	flag.Parse()
