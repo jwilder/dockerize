@@ -91,19 +91,33 @@ func waitForDependencies() {
 			case "http", "https":
 				wg.Add(1)
 				go func(u url.URL) {
+					client := &http.Client{
+						Timeout: waitTimeoutFlag,
+					}
+
 					defer wg.Done()
 					for {
-						client := &http.Client{}
-						req, _ := http.NewRequest("GET", u.String(), nil)
+						req, err := http.NewRequest("GET", u.String(), nil)
+						if err != nil {
+							log.Printf("Problem with dial: %v. Sleeping 5s\n", err.Error())
+							time.Sleep(5 * time.Second)
+						}
 						if len(headers) > 0 {
 							for _, header := range headers {
 								req.Header.Add(header.name, header.value)
 							}
 						}
+
 						resp, err := client.Do(req)
-						if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
+						if err != nil {
+							log.Printf("Problem with request: %s. Sleeping 5s\n", err.Error())
+							time.Sleep(5 * time.Second)
+						} else if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
 							log.Printf("Received %d from %s\n", resp.StatusCode, u.String())
 							return
+						} else {
+							log.Printf("Received %d from %s. Sleeping 5s\n", resp.StatusCode, u.String())
+							time.Sleep(5 * time.Second)
 						}
 					}
 				}(u)
