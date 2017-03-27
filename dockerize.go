@@ -104,6 +104,9 @@ func waitForDependencies() {
 						if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
 							log.Printf("Received %d from %s\n", resp.StatusCode, u.String())
 							return
+						} else {
+							log.Printf("Response from %s is not in 200s. Sleeping 5s\n", u.String())
+							time.Sleep(5 * time.Second)
 						}
 					}
 				}(u)
