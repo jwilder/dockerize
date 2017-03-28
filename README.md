@@ -42,6 +42,17 @@ RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSI
     && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
 ```
 
+For Alpine Images:
+
+``` Dockerfile
+RUN apk add --no-cache openssl
+
+ENV DOCKERIZE_VERSION v0.3.0
+RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && tar -C /usr/local/bin -xzvf dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && rm dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+```
+
 ## Docker Base Image
 
 The `jwilder/dockerize` image is a base image that can be used that is based on `alpine linux`.  `dockerize` is installed in the `$PATH` and can be used directly.
