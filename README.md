@@ -29,8 +29,19 @@ See [A Simple Way To Dockerize Applications](http://jasonwilder.com/blog/2014/10
 Download the latest version in your container:
 
 * [linux/amd64](https://github.com/jwilder/dockerize/releases/download/v0.4.0/dockerize-linux-amd64-v0.4.0.tar.gz)
+* [alpine/amd64)(https://github.com/jwilder/dockerize/releases/download/v0.4.0/dockerize-alpine-linux-amd64-v0.4.0.tar.gz
 
-For Ubuntu Images:
+### Docker Base Image
+
+The `jwilder/dockerize` image is a base image based on `alpine linux`.  `dockerize` is installed in the `$PATH` and can be used directly.
+
+```
+FROM jwilder/dockerize
+...
+ENTRYPOINT dockerize ...
+```
+
+### Ubuntu Images
 
 ``` Dockerfile
 RUN apt-get update && apt-get install -y wget
@@ -39,16 +50,6 @@ ENV DOCKERIZE_VERSION v0.4.0
 RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
     && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
     && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-```
-
-## Docker Base Image
-
-The `jwilder/dockerize` image is a base image that can be used that is based on `alpine linux`.  `dockerize` is installed in the `$PATH` and can be used directly.
-
-```
-FROM jwilder/dockerize
-...
-ENTRYPOINT dockerize ...
 ```
 
 ## Usage
