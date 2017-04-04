@@ -3,27 +3,26 @@ dockerize ![version v0.4.0](https://img.shields.io/badge/version-v0.4.0-brightgr
 
 Utility to simplify running applications in docker containers.
 
-dockerize is a utility to simplify running applications in docker containers.  It allows you
-to generate application configuration files at container startup time from templates and
-container environment variables.  It also allows log files to be tailed to stdout and/or
-stderr.
+dockerize is a utility to simplify running applications in docker containers.  It allows you to:
+* generate application configuration files at container startup time from templates and container environment variables
+* Tail multiple log files to stdout and/or stderr
+* Wait for other services to be available using TCP, HTTP(S), unix before starting the main process.
 
-The typical use case for dockerize is when you have an application that has one or more
-configuration files and you would like to control some of the values using environment variables.
+The typical use case for dockerize is when you have an application that has one or more configuration files and you would like to control some of the values using environment variables.
 
 For example, a Python application using Sqlalchemy might not be able to use environment variables directly.
 It may require that the database URL be read from a python settings file with a variable named
 `SQLALCHEMY_DATABASE_URI`.  dockerize allows you to set an environment variable such as
 `DATABASE_URL` and update the python file when the container starts.
+In addition, it can also delay the starting of the python application until the database container is running and listening on the TCP port.
 
 Another use case is when the application logs to specific files on the filesystem and not stdout
 or stderr. This makes it difficult to troubleshoot the container using the `docker logs` command.
 For example, nginx will log to `/var/log/nginx/access.log` and
-`/var/log/nginx/error.log` by default. While you can sometimes work around this, it's tedious to find
-the a solution for every application. dockerize allows you to specify which logs files should
-be tailed and where they should be sent.
+`/var/log/nginx/error.log` by default. While you can sometimes work around this, it's tedious to find a solution for every application. dockerize allows you to specify which logs files should be tailed and where they should be sent.
 
 See [A Simple Way To Dockerize Applications](http://jasonwilder.com/blog/2014/10/13/a-simple-way-to-dockerize-applications/)
+
 
 ## Installation
 
