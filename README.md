@@ -29,7 +29,7 @@ See [A Simple Way To Dockerize Applications](http://jasonwilder.com/blog/2014/10
 Download the latest version in your container:
 
 * [linux/amd64](https://github.com/jwilder/dockerize/releases/download/v0.4.0/dockerize-linux-amd64-v0.4.0.tar.gz)
-* [alpine/amd64)(https://github.com/jwilder/dockerize/releases/download/v0.4.0/dockerize-alpine-linux-amd64-v0.4.0.tar.gz
+* [alpine/amd64](https://github.com/jwilder/dockerize/releases/download/v0.4.0/dockerize-alpine-linux-amd64-v0.4.0.tar.gz)
 
 ### Docker Base Image
 
