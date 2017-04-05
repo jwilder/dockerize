@@ -52,6 +52,18 @@ RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSI
     && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
 ```
 
+
+### For Alpine Images:
+
+``` Dockerfile
+RUN apk add --no-cache openssl
+
+ENV DOCKERIZE_VERSION v0.3.0
+RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && tar -C /usr/local/bin -xzvf dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && rm dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+```
+
 ## Usage
 
 dockerize works by wrapping the call to your application using the `ENTRYPOINT` or `CMD` directives.
