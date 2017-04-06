@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"text/template"
 
+	"github.com/Masterminds/sprig"
 	"github.com/jwilder/gojq"
 )
 
@@ -92,7 +93,11 @@ func jsonQuery(jsonObj string, query string) (interface{}, error) {
 }
 
 func generateFile(templatePath, destPath string) bool {
-	tmpl := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
+	sprigFuncs := map[string]interface{}{}
+	for k, v := range sprig.TxtFuncMap() {
+		sprigFuncs["sprig_"+k] = v
+	}
+	tmpl := template.New(filepath.Base(templatePath)).Funcs(sprigFuncs).Funcs(template.FuncMap{
 		"contains":  contains,
 		"exists":    exists,
 		"split":     strings.Split,
