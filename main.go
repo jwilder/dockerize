@@ -56,6 +56,7 @@ var (
 	waitRetryInterval time.Duration
 	waitTimeoutFlag   time.Duration
 	dependencyChan    chan struct{}
+	noOverwriteFlag   bool
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -190,7 +191,9 @@ func main() {
 
 	flag.BoolVar(&version, "version", false, "show version")
 	flag.BoolVar(&poll, "poll", false, "enable polling")
+
 	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times. Does also support directories")
+	flag.BoolVar(&noOverwriteFlag, "no-overwrite", false, "Do not overwrite destination file if it already exists.")
 	flag.Var(&stdoutTailFlag, "stdout", "Tails a file to stdout. Can be passed multiple times")
 	flag.Var(&stderrTailFlag, "stderr", "Tails a file to stderr. Can be passed multiple times")
 	flag.StringVar(&delimsFlag, "delims", "", `template tag delimiters. default "{{":"}}" `)
@@ -265,6 +268,13 @@ func main() {
 		} else {
 			generateFile(template, dest)
 		}
+
+		// _, err := os.Stat(dest)
+		// if err != nil || forceFlag {
+		// 	generateFile(template, dest)
+		// } else {
+		// 	log.Printf("file \"%s\" exists, template not generated", dest)
+		// }
 	}
 
 	waitForDependencies()

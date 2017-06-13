@@ -140,6 +140,11 @@ func generateFile(templatePath, destPath string) bool {
 		log.Fatalf("unable to parse template: %s", err)
 	}
 
+	// Don't overwrite destination file if it exists and no-overwrite flag passed
+	if _, err := os.Stat(destPath); err == nil && noOverwriteFlag {
+		return false
+	}
+
 	dest := os.Stdout
 	if destPath != "" {
 		dest, err = os.Create(destPath)
