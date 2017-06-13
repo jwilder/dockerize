@@ -100,6 +100,11 @@ $ dockerize -template src_dir:dest_dir
 
 ```
 
+If the destination file already exists, dockerize will refuse to overwrite it. The -force flag overrides this behaviour.
+
+```
+$ dockerize -force -template template1.tmpl:file
+```
 
 You can tail multiple files to `STDOUT` and `STDERR` by passing the options multiple times.
 
@@ -114,7 +119,6 @@ If `inotify` does not work in you container, you use `-poll` to poll for file ch
 $ dockerize -stdout info.log -stdout perf.log -poll
 
 ```
-
 
 If your file uses `{{` and `}}` as part of it's syntax, you can change the template escape characters using the `-delims`.
 
