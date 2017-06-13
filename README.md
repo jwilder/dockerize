@@ -171,6 +171,7 @@ There are a few built in functions as well:
   * `lower $value` - Lowercase a string.
   * `upper $value` - Uppercase a string.
   * `jsonQuery $json $query` - Returns the result of a selection query against a json document.
+  * `loop` - Create for loops.
 
 ### jsonQuery
 
@@ -195,6 +196,27 @@ With the following JSON in `.Env.SERVICES`
 ```
 
 the template expression `jsonQuery .Env.SERVICES "services.[1].port"` returns `9000`.
+
+### loop
+
+`loop` allows for creating for loop within a template.  It takes 1 to 3 arguments.
+
+```
+# Loop from 0...10
+{{ range loop 10 }}
+i = {{ . }}
+{{ end }}
+
+# Loop from 5...10
+{{ range $i := loop 5 10 }}
+i = {{ $i }}
+{{ end }}
+
+# Loop from 5...10 by 2
+{{ range $i := loop 5 10 2 }}
+i = {{ $i }}
+{{ end }}
+```
 
 ## License
 
