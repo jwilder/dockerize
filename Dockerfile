@@ -1,12 +1,17 @@
-FROM alpine:latest
+FROM golang:1.8.3-alpine3.6 AS binary
+RUN apk -U add openssl git
+
+ADD . /go/src/github.com/jwilder/dockerize
+WORKDIR /go/src/github.com/jwilder/dockerize
+
+RUN go get github.com/robfig/glock
+RUN glock sync -n < GLOCKFILE
+RUN go install
+
+FROM alpine:3.6
 MAINTAINER Jason Wilder <mail@jasonwilder.com>
 
-RUN apk -U add openssl
-
-ENV VERSION v0.4.0
-ENV DOWNLOAD_URL https://github.com/jwilder/dockerize/releases/download/$VERSION/dockerize-alpine-linux-amd64-$VERSION.tar.gz
-
-RUN wget -qO- $DOWNLOAD_URL | tar xvz -C /usr/local/bin
+COPY --from=binary /go/bin/dockerize /usr/local/bin
 
 ENTRYPOINT ["dockerize"]
 CMD ["--help"]
