@@ -27,7 +27,7 @@ func runCmd(ctx context.Context, cancel context.CancelFunc, cmd string, args ...
 
 	// Setup signaling
 	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL)
+	signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 
 	wg.Add(1)
 	go func() {
