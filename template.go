@@ -33,30 +33,70 @@ func contains(item map[string]string, key string) bool {
 	return false
 }
 
+func _checkDefaultValueArgs(args interface{}) error {
+	vargs, _ := args.([]interface{})
+
+	if len(vargs) == 0 {
+		return fmt.Errorf("default called with no values!")
+	}
+
+	if len(vargs) < 2 {
+		return fmt.Errorf("default called with no default value")
+	}
+
+	if vargs[1] == nil {
+		return fmt.Errorf("default called with nil default value!")
+	}
+
+	if _, ok := vargs[1].(string); !ok {
+		return fmt.Errorf("default is not a string value. hint: surround it w/ double quotes.")
+	}
+
+	return nil
+}
+
 func defaultValue(args ...interface{}) (string, error) {
-	if len(args) == 0 {
-		return "", fmt.Errorf("default called with no values!")
+	if err := _checkDefaultValueArgs(args); err != nil {
+		return "", err
 	}
 
-	if len(args) > 0 {
-		if args[0] != nil {
-			return args[0].(string), nil
-		}
+	if args[0] != nil {
+		return args[0].(string), nil
 	}
 
-	if len(args) > 1 {
-		if args[1] == nil {
-			return "", fmt.Errorf("default called with nil default value!")
-		}
+	return args[1].(string), nil
+}
 
-		if _, ok := args[1].(string); !ok {
-			return "", fmt.Errorf("default is not a string value. hint: surround it w/ double quotes.")
-		}
+func defaultValueEmpty(args ...interface{}) (string, error) {
+	if err := _checkDefaultValueArgs(args); err != nil {
+		return "", err
+	}
 
+	if args[0] == nil || len(args[0].(string)) == 0 {
 		return args[1].(string), nil
 	}
 
-	return "", fmt.Errorf("default called with no default value")
+	return args[0].(string), nil
+}
+
+func requiredValue(val interface{}) (interface{}, error) {
+	if val != nil {
+		return val, nil
+	}
+
+	return nil, fmt.Errorf("Required value is nil")
+}
+
+func requiredValueEmpty(val interface{}) (interface{}, error) {
+	if _, err := requiredValue(val); err != nil {
+		return nil, err
+	}
+
+	if val, ok := val.(string); ok && len(val) == 0 {
+		return nil, fmt.Errorf("Required value is empty")
+	}
+
+	return val, nil
 }
 
 func parseUrl(rawurl string) *url.URL {
@@ -101,7 +141,7 @@ func loop(args ...int) (<-chan int, error) {
 	case 3:
 		start, stop, step = args[0], args[1], args[2]
 	default:
-		return nil, fmt.Errorf("wrong number of arguments, expected 1-3"+
+		return nil, fmt.Errorf("wrong number of arguments, expected 1-3" +
 			", but got %d", len(args))
 	}
 
@@ -117,19 +157,22 @@ func loop(args ...int) (<-chan int, error) {
 
 func generateFile(templatePath, destPath string) bool {
 	tmpl := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
-		"contains":  contains,
-		"exists":    exists,
-		"split":     strings.Split,
-		"replace":   strings.Replace,
-		"default":   defaultValue,
-		"parseUrl":  parseUrl,
-		"atoi":      strconv.Atoi,
-		"add":       add,
-		"isTrue":    isTrue,
-		"lower":     strings.ToLower,
-		"upper":     strings.ToUpper,
-		"jsonQuery": jsonQuery,
-		"loop":      loop,
+		"contains":      contains,
+		"exists":        exists,
+		"split":         strings.Split,
+		"replace":       strings.Replace,
+		"default":       defaultValue,
+		"defaultEmpty":  defaultValueEmpty,
+		"required":      requiredValue,
+		"requiredEmpty": requiredValueEmpty,
+		"parseUrl":      parseUrl,
+		"atoi":          strconv.Atoi,
+		"add":           add,
+		"isTrue":        isTrue,
+		"lower":         strings.ToLower,
+		"upper":         strings.ToUpper,
+		"jsonQuery":     jsonQuery,
+		"loop":          loop,
 	})
 
 	if len(delims) > 0 {
