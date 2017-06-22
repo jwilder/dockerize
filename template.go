@@ -155,6 +155,51 @@ func loop(args ...int) (<-chan int, error) {
 	return c, nil
 }
 
+func envSlice(envParamPrefix string) ([]map[string]interface{}, error) {
+	variables := make(map[string]interface{})
+
+	biggestIndex := 0
+
+	for _, i := range os.Environ() {
+		sep := strings.Index(i, "=")
+		key := i[0:sep]
+		val := i[sep + 1:]
+
+		if strings.HasPrefix(key, envParamPrefix) {
+			suffix := key[strings.LastIndex(key, "_") + 1:]
+			if num, ok := strconv.Atoi(suffix); ok == nil {
+				if biggestIndex < num {
+					biggestIndex = num
+				}
+				variables[key] = val
+			}
+		}
+	}
+
+	var result []map[string]interface{}
+	if biggestIndex > 0 {
+		result = make([]map[string]interface{}, biggestIndex)
+
+		for i := 0; i < biggestIndex; i++ {
+			result[i] = make(map[string]interface{})
+		}
+
+		for key, value := range variables {
+			indexStr := key[strings.LastIndex(key, "_") + 1:]
+			resultIndex, _ := strconv.Atoi(indexStr)
+			resultIndex -= 1
+			resultKey := key[0:strings.LastIndex(key, "_")]
+
+			result[resultIndex][resultKey] = value
+		}
+
+	} else {
+		result = make([]map[string]interface{}, 0)
+	}
+
+	return result, nil
+}
+
 func generateFile(templatePath, destPath string) bool {
 	tmpl := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
 		"contains":      contains,
@@ -173,6 +218,7 @@ func generateFile(templatePath, destPath string) bool {
 		"upper":         strings.ToUpper,
 		"jsonQuery":     jsonQuery,
 		"loop":          loop,
+		"envSlice":      envSlice,
 	})
 
 	if len(delims) > 0 {
