@@ -166,6 +166,9 @@ variables within a template with `.Env`.
 There are a few built in functions as well:
 
   * `default $var $default` - Returns a default value for one that does not exist. `{{ default .Env.VERSION "0.1.2" }}`
+  * `defaultEmpty $var $default` - Returns a default value for one that does not exist or is empty in case of string. `{{ default .Env.VERSION "0.1.2" }}`
+  * `required $val` Returns a value passed as argument or error if value does not exist. `{{ required .Env.VERSION }}` 
+  * `requiredEmpty $val` Returns a value passed as argument or error if value does not exist or is empty in case of string. `{{ requiredEmpty .Env.VERSION }}` 
   * `contains $map $key` - Returns true if a string is within another string
   * `exists $path` - Determines if a file path exists or not. `{{ exists "/etc/default/myapp" }}`
   * `split $string $sep` - Splits a string into an array using a separator string. Alias for [`strings.Split`][go.string.Split]. `{{ split .Env.PATH ":" }}`
@@ -178,6 +181,7 @@ There are a few built in functions as well:
   * `upper $value` - Uppercase a string.
   * `jsonQuery $json $query` - Returns the result of a selection query against a json document.
   * `loop` - Create for loops.
+  * `envSlice` - Returns the array filled with maps of environment variables passed as collection (variables that contains numeric suffix) and matched to $prefix `{{ envSlice "VARIABLE_NAME" }}`
 
 ### jsonQuery
 
@@ -223,6 +227,34 @@ i = {{ $i }}
 i = {{ $i }}
 {{ end }}
 ```
+
+### envSlice
+
+`envSlice` can be useful if we want to pass multiple values of the same property by environment variables. It can be also used to pass different values with same index
+
+For variables:
+```
+EXAMPLEVAR_SUBVAR_1
+EXAMPLEVAR_SUBVAR_2
+EXAMPLEVAR_ANOTHERSUBVAR_1
+EXAMPLEVAR_ANOTHERSUBVAR_2
+```
+Let's assume that we call envSlice with $prefix = "EXAMPLEVAR". Function return an array. Each entry will have a map of variables that starts with `EXAMPLEVAR` and having same index
+Returned collection can be used in loop. For example:
+
+```
+{{ range $i := envSlice ("EXAMPLEVAR") }}
+
+subvar value: {{ $i.EXAMPLEVAR_SUBVAR }}
+anotherSubvar value: {{ $i.EXAMPLEVAR_ANOTHERSUBVAR }}
+
+---
+
+```
+
+##### Limitations
+Note that the last index of array will be highest index found in variables matched by prefix. So if we define EXAMPLEVAR_1 and EXAMPLEVAR_100 the loop will be iterate 100 times with filled values only in first and last index
+
 
 ## License
 
