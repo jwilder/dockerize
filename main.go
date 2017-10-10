@@ -88,6 +88,20 @@ func waitForDependencies() {
 			log.Println("Waiting for:", u.String())
 
 			switch u.Scheme {
+			case "file":
+				wg.Add(1)
+				go func(u url.URL) {
+					defer wg.Done()
+					ticker := time.NewTicker(waitRetryInterval)
+					var err error
+					for range ticker.C {
+						if _, err = os.Stat(u.Path); !os.IsNotExist(err) {
+							log.Printf("File %s had been generated\n", u.String())
+							return
+						}
+						log.Printf("Problem with check file %s exist: %v. Sleeping %s\n", u.String(), err.Error(), waitRetryInterval)
+					}
+				}(u)
 			case "tcp", "tcp4", "tcp6":
 				waitForSocket(u.Scheme, u.Host, waitTimeoutFlag)
 			case "unix":
