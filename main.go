@@ -11,8 +11,9 @@ import (
 	"strings"
 	"sync"
 	"time"
-
+	"gopkg.in/ini.v1"
 	"golang.org/x/net/context"
+	//"github.com/davecgh/go-spew/spew"
 )
 
 const defaultWaitRetryInterval = time.Second
@@ -20,14 +21,18 @@ const defaultWaitRetryInterval = time.Second
 type sliceVar []string
 type hostFlagsVar []string
 
+// Context is the type passed into the template renderer
 type Context struct {
 }
 
-type HttpHeader struct {
+// HTTPHeader this is an optional header passed on http checks
+type HTTPHeader struct {
 	name  string
 	value string
 }
 
+// Env is bound to the template rendering Context and returns the
+// environment variables passed to the program
 func (c *Context) Env() map[string]string {
 	env := make(map[string]string)
 	for _, i := range os.Environ() {
@@ -43,6 +48,7 @@ var (
 	poll         bool
 	wg           sync.WaitGroup
 
+	envFlag       string
 	templatesFlag     sliceVar
 	templateDirsFlag  sliceVar
 	stdoutTailFlag    sliceVar
@@ -50,7 +56,7 @@ var (
 	headersFlag       sliceVar
 	delimsFlag        string
 	delims            []string
-	headers           []HttpHeader
+	headers           []HTTPHeader
 	urls              []url.URL
 	waitFlag          hostFlagsVar
 	waitRetryInterval time.Duration
@@ -210,7 +216,7 @@ func main() {
 
 	flag.BoolVar(&version, "version", false, "show version")
 	flag.BoolVar(&poll, "poll", false, "enable polling")
-
+	flag.StringVar(&envFlag, "env", "", "Optional path to YAML file for loading env vars. Does not overwrite existing env vars.")
 	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times. Does also support directories")
 	flag.BoolVar(&noOverwriteFlag, "no-overwrite", false, "Do not overwrite destination file if it already exists.")
 	flag.Var(&stdoutTailFlag, "stdout", "Tails a file to stdout. Can be passed multiple times")
@@ -232,6 +238,21 @@ func main() {
 	if flag.NArg() == 0 && flag.NFlag() == 0 {
 		usage()
 		os.Exit(1)
+	}
+
+	if envFlag != "" {
+		cfg, err := ini.LoadSources(ini.LoadOptions{}, envFlag)
+		if err != nil {
+			log.Fatalf("Unable to load contents of %s as INI file: %s", envFlag, err)
+		}
+		envHash := cfg.Section("").KeysHash()
+
+		for k, v := range envHash {
+			if _, ok := os.LookupEnv(k); !ok {
+				log.Printf("Setting %s to %s", k, v)
+				os.Setenv(k,v)
+			}
+		}
 	}
 
 	if delimsFlag != "" {
@@ -261,7 +282,7 @@ func main() {
 			if len(parts) != 2 {
 				log.Fatalf(errMsg, headersFlag)
 			}
-			headers = append(headers, HttpHeader{name: strings.TrimSpace(parts[0]), value: strings.TrimSpace(parts[1])})
+			headers = append(headers, HTTPHeader{name: strings.TrimSpace(parts[0]), value: strings.TrimSpace(parts[1])})
 		} else {
 			log.Fatalf(errMsg, headersFlag)
 		}
