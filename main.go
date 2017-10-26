@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/ioutil"
 	"flag"
 	"fmt"
 	"log"
@@ -11,9 +12,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"errors"
+	"crypto/tls"
+
 	"gopkg.in/ini.v1"
 	"golang.org/x/net/context"
-	//"github.com/davecgh/go-spew/spew"
+	"github.com/davecgh/go-spew/spew"
 )
 
 const defaultWaitRetryInterval = time.Second
@@ -48,7 +52,10 @@ var (
 	poll         bool
 	wg           sync.WaitGroup
 
-	envFlag       string
+	envFlag       	  string
+	envSection		  string
+	envHdrFlag		  sliceVar
+	validateCert	  bool
 	templatesFlag     sliceVar
 	templateDirsFlag  sliceVar
 	stdoutTailFlag    sliceVar
@@ -212,11 +219,71 @@ Arguments:
 	println(`For more information, see https://github.com/jwilder/dockerize`)
 }
 
+
+func getINI( envFlag string, envHdrFlag []string ) (iniFile []byte, err error) {
+	url, urlERR := url.ParseRequestURI(envFlag)
+
+	// See if it parses like an absolute URL, if so use http, otherwise just read the file
+	if urlERR == nil && url.IsAbs() {
+		var resp *http.Response
+		var req *http.Request
+		var hdr string
+		var client *http.Client
+		var tr *http.Transport;
+		var redir = func (req *http.Request, via []*http.Request) error {
+			return errors.New("Redirects disallowed")
+		}
+	
+		if !validateCert {
+			tr = &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify : true},
+			}
+		}
+		client = &http.Client{ Transport: tr, CheckRedirect: redir }
+		req, err = http.NewRequest("GET", envFlag, nil)
+		if err != nil { // Weird problem with declaring client, bail
+			return
+		}
+		// Handle headers for request, if any
+		for _, h := range envHdrFlag {
+			if strings.Contains(h, ":") {
+				hdr = h
+			} else { // Assume this is a path to a secrets file
+				var hdrFile []byte
+				hdrFile, err = ioutil.ReadFile(h)
+				if err != nil { // Could not read file, error out
+					return
+				}
+				hdr=string(hdrFile)
+			}
+			parts := strings.Split(hdr, ":")
+			if len(parts) != 2 {
+				log.Fatalf("Bad env-headers argument: %s. expected \"headerName: headerValue\"", hdr)
+			}
+			req.Header.Add(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))	
+		}
+		resp, err = client.Do(req)
+		if err == nil && resp.StatusCode == 200 {
+			defer resp.Body.Close()
+			iniFile, err = ioutil.ReadAll(resp.Body)
+		} else if err == nil { // Request completed with unexpected HTTP status code, bail
+			err = errors.New( resp.Status)
+			return
+		}
+	} else {
+		iniFile, err = ioutil.ReadFile( envFlag)
+	}
+	return
+}
+
 func main() {
 
 	flag.BoolVar(&version, "version", false, "show version")
 	flag.BoolVar(&poll, "poll", false, "enable polling")
-	flag.StringVar(&envFlag, "env", "", "Optional path to YAML file for loading env vars. Does not overwrite existing env vars.")
+	flag.StringVar(&envFlag, "env", "", "Optional path to INI file for loading env vars. Does not overwrite existing env vars.")
+	flag.StringVar(&envSection, "env-section", "", "Optional section of INI file for loading env vars. Defaults to \"\"")
+	flag.Var(&envHdrFlag, "env-header", "Optional paths or string for http headers passed if -env is a URL.")
+	flag.BoolVar(&validateCert, "validate-cert", true, "Verify SSL certs for https connections")
 	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times. Does also support directories")
 	flag.BoolVar(&noOverwriteFlag, "no-overwrite", false, "Do not overwrite destination file if it already exists.")
 	flag.Var(&stdoutTailFlag, "stdout", "Tails a file to stdout. Can be passed multiple times")
@@ -241,15 +308,19 @@ func main() {
 	}
 
 	if envFlag != "" {
-		cfg, err := ini.LoadSources(ini.LoadOptions{}, envFlag)
+		iniFile, err := getINI( envFlag, envHdrFlag)
 		if err != nil {
-			log.Fatalf("Unable to load contents of %s as INI file: %s", envFlag, err)
+			log.Fatalf("Unable to read %s: %s", envFlag, err)
 		}
-		envHash := cfg.Section("").KeysHash()
+		cfg, err := ini.LoadSources(ini.LoadOptions{}, iniFile)
+		if err != nil {
+			log.Fatalf("Unable to parse contents of %s as INI format: %s", envFlag, err)
+		}
+		envHash := cfg.Section(envSection).KeysHash()
 
 		for k, v := range envHash {
 			if _, ok := os.LookupEnv(k); !ok {
-				log.Printf("Setting %s to %s", k, v)
+				// log.Printf("Setting %s to %s", k, v)
 				os.Setenv(k,v)
 			}
 		}
