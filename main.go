@@ -289,9 +289,9 @@ func main() {
 
 	flag.BoolVar(&version, "version", false, "show version")
 	flag.BoolVar(&poll, "poll", false, "enable polling")
-	flag.StringVar(&envFlag, "env", "", "Optional path to INI file for loading env vars. Does not overwrite existing env vars.")
-	flag.StringVar(&envSection, "env-section", "", "Optional section of INI file for loading env vars. Defaults to \"\"")
-	flag.Var(&envHdrFlag, "env-header", "Optional paths or string for http headers passed if -env is a URL.")
+	flag.StringVar(&envFlag, "env", "", "Optional path to INI file for injecting env vars. Does not overwrite existing env vars")
+	flag.StringVar(&envSection, "env-section", "", "Optional section of INI file to use for loading env vars. Defaults to \"\"")
+	flag.Var(&envHdrFlag, "env-header", "Optional string or path to secrets file for http headers passed if -env is a URL")
 	flag.BoolVar(&validateCert, "validate-cert", true, "Verify SSL certs for https connections")
 	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times. Does also support directories")
 	flag.BoolVar(&noOverwriteFlag, "no-overwrite", false, "Do not overwrite destination file if it already exists.")
@@ -319,11 +319,11 @@ func main() {
 	if envFlag != "" {
 		iniFile, err := getINI( envFlag, envHdrFlag)
 		if err != nil {
-			log.Fatalf("Unable to read %s: %s", envFlag, err)
+			log.Fatalf("unreadable INI file %s: %s", envFlag, err)
 		}
 		cfg, err := ini.LoadSources(ini.LoadOptions{}, iniFile)
 		if err != nil {
-			log.Fatalf("Unable to parse contents of %s as INI format: %s", envFlag, err)
+			log.Fatalf("error parsing contents of %s as INI format: %s", envFlag, err)
 		}
 		envHash := cfg.Section(envSection).KeysHash()
 
