@@ -17,7 +17,6 @@ import (
 
 	"gopkg.in/ini.v1"
 	"golang.org/x/net/context"
-	"github.com/davecgh/go-spew/spew"
 )
 
 const defaultWaitRetryInterval = time.Second
@@ -127,8 +126,15 @@ func waitForDependencies() {
 			case "http", "https":
 				wg.Add(1)
 				go func(u url.URL) {
+					var tr *http.Transport
+					if !validateCert {
+						tr = &http.Transport{
+							TLSClientConfig: &tls.Config{InsecureSkipVerify : true},
+						}
+					}
 					client := &http.Client{
 						Timeout: waitTimeoutFlag,
+						Transport: tr,
 					}
 
 					defer wg.Done()
@@ -221,15 +227,16 @@ Arguments:
 
 
 func getINI( envFlag string, envHdrFlag []string ) (iniFile []byte, err error) {
-	url, urlERR := url.ParseRequestURI(envFlag)
 
-	// See if it parses like an absolute URL, if so use http, otherwise just read the file
+	// See if envFlag parses like an absolute URL, if so use http, otherwise treat as filename
+	url, urlERR := url.ParseRequestURI(envFlag)
 	if urlERR == nil && url.IsAbs() {
 		var resp *http.Response
 		var req *http.Request
 		var hdr string
 		var client *http.Client
-		var tr *http.Transport;
+		var tr *http.Transport
+		// Define redirect handler to disallow redirects
 		var redir = func (req *http.Request, via []*http.Request) error {
 			return errors.New("Redirects disallowed")
 		}
@@ -241,14 +248,16 @@ func getINI( envFlag string, envHdrFlag []string ) (iniFile []byte, err error) {
 		}
 		client = &http.Client{ Transport: tr, CheckRedirect: redir }
 		req, err = http.NewRequest("GET", envFlag, nil)
-		if err != nil { // Weird problem with declaring client, bail
+		if err != nil {
+			// Weird problem with declaring client, bail
 			return
 		}
-		// Handle headers for request, if any
+		// Handle headers for request - are they headers or filepaths?
 		for _, h := range envHdrFlag {
 			if strings.Contains(h, ":") {
+				// This will break if path includes colon - don't use colons in path!
 				hdr = h
-			} else { // Assume this is a path to a secrets file
+			} else { // Treat this is a path to a secrets file containing header
 				var hdrFile []byte
 				hdrFile, err = ioutil.ReadFile(h)
 				if err != nil { // Could not read file, error out
