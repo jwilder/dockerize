@@ -126,7 +126,7 @@ func waitForDependencies() {
 			case "http", "https":
 				wg.Add(1)
 				go func(u url.URL) {
-					var tr *http.Transport
+					var tr = http.DefaultTransport
 					if !validateCert {
 						tr = &http.Transport{
 							TLSClientConfig: &tls.Config{InsecureSkipVerify : true},
@@ -235,7 +235,7 @@ func getINI( envFlag string, envHdrFlag []string ) (iniFile []byte, err error) {
 		var req *http.Request
 		var hdr string
 		var client *http.Client
-		var tr *http.Transport
+		var tr = http.DefaultTransport
 		// Define redirect handler to disallow redirects
 		var redir = func (req *http.Request, via []*http.Request) error {
 			return errors.New("Redirects disallowed")
