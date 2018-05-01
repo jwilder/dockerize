@@ -14,6 +14,7 @@ import (
 	"time"
 	"errors"
 	"crypto/tls"
+	"syscall"
 
 	"gopkg.in/ini.v1"
 	"golang.org/x/net/context"
@@ -69,6 +70,8 @@ var (
 	waitTimeoutFlag   time.Duration
 	dependencyChan    chan struct{}
 	noOverwriteFlag   bool
+	eUID			  int
+	eGID			  int
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -293,6 +296,8 @@ func main() {
 	flag.StringVar(&envSection, "env-section", "", "Optional section of INI file to use for loading env vars. Defaults to \"\"")
 	flag.Var(&envHdrFlag, "env-header", "Optional string or path to secrets file for http headers passed if -env is a URL")
 	flag.BoolVar(&validateCert, "validate-cert", true, "Verify SSL certs for https connections")
+	flag.IntVar(&eGID, "egid", -1, "Set the numeric group ID for the running program") // Check for -1 later to skip
+	flag.IntVar(&eUID, "euid", -1, "Set the numeric user id for the running program")
 	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times. Does also support directories")
 	flag.BoolVar(&noOverwriteFlag, "no-overwrite", false, "Do not overwrite destination file if it already exists.")
 	flag.Var(&stdoutTailFlag, "stdout", "Tails a file to stdout. Can be passed multiple times")
@@ -397,6 +402,21 @@ func main() {
 
 	if flag.NArg() > 0 {
 		wg.Add(1)
+		// Drop privs if passed the euid or egid params
+		if (eGID >= 0) {
+			err := syscall.Setgid(eGID)
+			if err != nil {
+				log.Fatalf("Error while setting GID to %d: %s", eGID, err)
+			}
+		}
+
+		if (eUID >= 0) {
+			err := syscall.Setuid(eUID)
+			if err != nil {
+				log.Fatalf("Error while setting UID to %d: %s", eUID, err)
+			}
+		}
+	
 		go runCmd(ctx, cancel, flag.Arg(0), flag.Args()[1:]...)
 	}
 
