@@ -1,9 +1,11 @@
 package main
 
 import (
-	"io/ioutil"
+	"crypto/tls"
+	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -12,12 +14,9 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"errors"
-	"crypto/tls"
-	"syscall"
 
-	"gopkg.in/ini.v1"
 	"golang.org/x/net/context"
+	"gopkg.in/ini.v1"
 )
 
 const defaultWaitRetryInterval = time.Second
@@ -52,10 +51,10 @@ var (
 	poll         bool
 	wg           sync.WaitGroup
 
-	envFlag       	  string
-	envSection		  string
-	envHdrFlag		  sliceVar
-	validateCert	  bool
+	envFlag           string
+	envSection        string
+	envHdrFlag        sliceVar
+	validateCert      bool
 	templatesFlag     sliceVar
 	templateDirsFlag  sliceVar
 	stdoutTailFlag    sliceVar
@@ -70,8 +69,8 @@ var (
 	waitTimeoutFlag   time.Duration
 	dependencyChan    chan struct{}
 	noOverwriteFlag   bool
-	eUID			  int
-	eGID			  int
+	eUID              int
+	eGID              int
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -132,11 +131,11 @@ func waitForDependencies() {
 					var tr = http.DefaultTransport
 					if !validateCert {
 						tr = &http.Transport{
-							TLSClientConfig: &tls.Config{InsecureSkipVerify : true},
+							TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 						}
 					}
 					client := &http.Client{
-						Timeout: waitTimeoutFlag,
+						Timeout:   waitTimeoutFlag,
 						Transport: tr,
 					}
 
@@ -228,8 +227,7 @@ Arguments:
 	println(`For more information, see https://github.com/jwilder/dockerize`)
 }
 
-
-func getINI( envFlag string, envHdrFlag []string ) (iniFile []byte, err error) {
+func getINI(envFlag string, envHdrFlag []string) (iniFile []byte, err error) {
 
 	// See if envFlag parses like an absolute URL, if so use http, otherwise treat as filename
 	url, urlERR := url.ParseRequestURI(envFlag)
@@ -240,16 +238,16 @@ func getINI( envFlag string, envHdrFlag []string ) (iniFile []byte, err error) {
 		var client *http.Client
 		var tr = http.DefaultTransport
 		// Define redirect handler to disallow redirects
-		var redir = func (req *http.Request, via []*http.Request) error {
+		var redir = func(req *http.Request, via []*http.Request) error {
 			return errors.New("Redirects disallowed")
 		}
-	
+
 		if !validateCert {
 			tr = &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify : true},
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			}
 		}
-		client = &http.Client{ Transport: tr, CheckRedirect: redir }
+		client = &http.Client{Transport: tr, CheckRedirect: redir}
 		req, err = http.NewRequest("GET", envFlag, nil)
 		if err != nil {
 			// Weird problem with declaring client, bail
@@ -266,24 +264,24 @@ func getINI( envFlag string, envHdrFlag []string ) (iniFile []byte, err error) {
 				if err != nil { // Could not read file, error out
 					return
 				}
-				hdr=string(hdrFile)
+				hdr = string(hdrFile)
 			}
 			parts := strings.Split(hdr, ":")
 			if len(parts) != 2 {
 				log.Fatalf("Bad env-headers argument: %s. expected \"headerName: headerValue\"", hdr)
 			}
-			req.Header.Add(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))	
+			req.Header.Add(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
 		}
 		resp, err = client.Do(req)
 		if err == nil && resp.StatusCode == 200 {
 			defer resp.Body.Close()
 			iniFile, err = ioutil.ReadAll(resp.Body)
 		} else if err == nil { // Request completed with unexpected HTTP status code, bail
-			err = errors.New( resp.Status)
+			err = errors.New(resp.Status)
 			return
 		}
 	} else {
-		iniFile, err = ioutil.ReadFile( envFlag)
+		iniFile, err = ioutil.ReadFile(envFlag)
 	}
 	return
 }
@@ -322,7 +320,7 @@ func main() {
 	}
 
 	if envFlag != "" {
-		iniFile, err := getINI( envFlag, envHdrFlag)
+		iniFile, err := getINI(envFlag, envHdrFlag)
 		if err != nil {
 			log.Fatalf("unreadable INI file %s: %s", envFlag, err)
 		}
@@ -335,7 +333,7 @@ func main() {
 		for k, v := range envHash {
 			if _, ok := os.LookupEnv(k); !ok {
 				// log.Printf("Setting %s to %s", k, v)
-				os.Setenv(k,v)
+				os.Setenv(k, v)
 			}
 		}
 	}
@@ -403,20 +401,20 @@ func main() {
 	if flag.NArg() > 0 {
 		wg.Add(1)
 		// Drop privs if passed the euid or egid params
-		if (eGID >= 0) {
-			err := syscall.Setgid(eGID)
+		if eGID >= 0 {
+			err := Setgid(eGID)
 			if err != nil {
 				log.Fatalf("Error while setting GID to %d: %s", eGID, err)
 			}
 		}
 
-		if (eUID >= 0) {
-			err := syscall.Setuid(eUID)
+		if eUID >= 0 {
+			err := Setuid(eUID)
 			if err != nil {
 				log.Fatalf("Error while setting UID to %d: %s", eUID, err)
 			}
 		}
-	
+
 		go runCmd(ctx, cancel, flag.Arg(0), flag.Args()[1:]...)
 	}
 
