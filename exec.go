@@ -14,6 +14,22 @@ import (
 func runCmd(ctx context.Context, cancel context.CancelFunc, cmd string, args ...string) {
 	defer wg.Done()
 
+	if eGID >= 0 {
+		log.Printf("Setting effective gid to %d", eGID)
+		err := Setgid(eGID)
+		if err != nil {
+			log.Fatalf("Error while setting GID to %d: %s", eGID, err)
+		}
+	}
+
+	if eUID >= 0 {
+		log.Printf("Setting effective uid to %d", eUID)
+		err := Setuid(eUID)
+		if err != nil {
+			log.Fatalf("Error while setting UID to %d: %s", eUID, err)
+		}
+	}
+
 	process := exec.Command(cmd, args...)
 	process.Stdin = os.Stdin
 	process.Stdout = os.Stdout

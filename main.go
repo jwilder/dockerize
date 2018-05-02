@@ -401,21 +401,6 @@ func main() {
 	if flag.NArg() > 0 {
 		wg.Add(1)
 		// Drop privs if passed the euid or egid params
-		if eGID >= 0 {
-			log.Printf("Setting effective gid to %d", eGID)
-			err := Setgid(eGID)
-			if err != nil {
-				log.Fatalf("Error while setting GID to %d: %s", eGID, err)
-			}
-		}
-
-		if eUID >= 0 {
-			log.Printf("Setting effective uid to %d", eUID)
-			err := Setuid(eUID)
-			if err != nil {
-				log.Fatalf("Error while setting UID to %d: %s", eUID, err)
-			}
-		}
 
 		go runCmd(ctx, cancel, flag.Arg(0), flag.Args()[1:]...)
 	}
