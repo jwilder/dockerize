@@ -402,6 +402,7 @@ func main() {
 		wg.Add(1)
 		// Drop privs if passed the euid or egid params
 		if eGID >= 0 {
+			log.Printf("Setting effective gid to %d", eGID)
 			err := Setgid(eGID)
 			if err != nil {
 				log.Fatalf("Error while setting GID to %d: %s", eGID, err)
@@ -409,6 +410,7 @@ func main() {
 		}
 
 		if eUID >= 0 {
+			log.Printf("Setting effective uid to %d", eUID)
 			err := Setuid(eUID)
 			if err != nil {
 				log.Fatalf("Error while setting UID to %d: %s", eUID, err)
