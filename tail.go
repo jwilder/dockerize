@@ -14,12 +14,10 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 	defer wg.Done()
 
 	var isPipe bool
-	var errCount int
 
 	s, err := os.Stat(file)
 	if err != nil {
 		log.Printf("Warning: unable to stat %s: %s", file, err)
-		errCount++
 		isPipe = false
 	} else {
 		isPipe = s.Mode()&os.ModeNamedPipe != 0
@@ -51,16 +49,11 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 		case line := <-t.Lines:
 			if t.Err() != nil {
 				log.Printf("Warning: unable to tail %s: %s", file, t.Err())
-				errCount++
-				if errCount > 30 {
-					log.Fatalf("Logged %d consecutive errors while tailing. Exiting", errCount)
-				}
 				time.Sleep(2 * time.Second) // Sleep for 2 seconds before retrying
 			} else if line == nil {
 				return
 			} else {
 				fmt.Fprintln(dest, line.Text)
-				errCount = 0 // Zero the error count
 			}
 		}
 	}
