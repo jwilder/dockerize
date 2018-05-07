@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/hpcloud/tail"
 	"golang.org/x/net/context"
@@ -12,9 +13,16 @@ import (
 func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 	defer wg.Done()
 
+	var isPipe bool
+	var errCount int
+
 	s, err := os.Stat(file)
 	if err != nil {
-		log.Fatalf("unable to stat %s: %s", file, err)
+		log.Printf("Warning: unable to stat %s: %s", file, err)
+		errCount++
+		isPipe = false
+	} else {
+		isPipe = s.Mode()&os.ModeNamedPipe != 0
 	}
 
 	t, err := tail.TailFile(file, tail.Config{
@@ -22,7 +30,7 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 		ReOpen: true,
 		Poll:   poll,
 		Logger: tail.DiscardingLogger,
-		Pipe:   s.Mode()&os.ModeNamedPipe != 0,
+		Pipe:   isPipe,
 	})
 	if err != nil {
 		log.Fatalf("unable to tail %s: %s", file, err)
@@ -41,15 +49,19 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 			return
 		// get the next log line and echo it out
 		case line := <-t.Lines:
-			if line == nil {
-				if t.Err() != nil {
-					log.Fatalf("unable to tail %s: %s", file, t.Err())
+			if t.Err() != nil {
+				log.Printf("Warning: unable to tail %s: %s", file, t.Err())
+				errCount++
+				if errCount > 100 {
+					log.Fatalf("Logged %d consecutive errors while tailing. Exiting", errCount)
 				}
+				time.Sleep(2 * time.Second) // Sleep for 2 seconds before retrying
+			} else if line == nil {
 				return
-			} else if line.Err != nil {
-				log.Fatalf("unable to tail %s: %s", file, t.Err())
+			} else {
+				fmt.Fprintln(dest, line.Text)
+				errCount = 0 // Zero the error count
 			}
-			fmt.Fprintln(dest, line.Text)
 		}
 	}
 }
