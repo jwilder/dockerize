@@ -52,7 +52,7 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 			if t.Err() != nil {
 				log.Printf("Warning: unable to tail %s: %s", file, t.Err())
 				errCount++
-				if errCount > 100 {
+				if errCount > 30 {
 					log.Fatalf("Logged %d consecutive errors while tailing. Exiting", errCount)
 				}
 				time.Sleep(2 * time.Second) // Sleep for 2 seconds before retrying
