@@ -35,7 +35,7 @@ func contains(item map[string]string, key string) bool {
 
 func defaultValue(args ...interface{}) (string, error) {
 	if len(args) == 0 {
-		return "", fmt.Errorf("default called with no values!")
+		return "", fmt.Errorf("default called with no values")
 	}
 
 	if len(args) > 0 {
@@ -46,11 +46,11 @@ func defaultValue(args ...interface{}) (string, error) {
 
 	if len(args) > 1 {
 		if args[1] == nil {
-			return "", fmt.Errorf("default called with nil default value!")
+			return "", fmt.Errorf("default called with nil default value")
 		}
 
 		if _, ok := args[1].(string); !ok {
-			return "", fmt.Errorf("default is not a string value. hint: surround it w/ double quotes.")
+			return "", fmt.Errorf("default is not a string value. hint: surround it w/ double quotes")
 		}
 
 		return args[1].(string), nil
