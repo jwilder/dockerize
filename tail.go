@@ -14,14 +14,13 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 	defer wg.Done()
 
 	var isPipe bool
-	var errCount int
+	var errCount int = 0
 	const maxErr = 30
 	const sleepDur = 2 * time.Second
 
 	s, err := os.Stat(file)
 	if err != nil {
 		log.Printf("Warning: unable to stat %s: %s", file, err)
-		errCount++
 		isPipe = false
 	} else {
 		isPipe = s.Mode()&os.ModeNamedPipe != 0
