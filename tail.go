@@ -51,7 +51,7 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 			return
 		// get the next log line and echo it out
 		case line := <-t.Lines:
-			if line.Err != nil || ( line == nil && t.Err() != nil ) {
+			if line.Err != nil || (line == nil && t.Err() != nil) {
 				log.Printf("Warning: unable to tail %s: %s", file, t.Err())
 				errCount++
 				if errCount > maxErr {
@@ -63,6 +63,7 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 				return
 			}
 			fmt.Fprintln(dest, line.Text)
+			errCount = 0 // Zero the error count
 		}
 	}
 }
