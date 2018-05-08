@@ -14,6 +14,7 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 	defer wg.Done()
 
 	var isPipe bool
+	var errCount = 0
 
 	s, err := os.Stat(file)
 	if err != nil {
@@ -47,14 +48,28 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 			return
 		// get the next log line and echo it out
 		case line := <-t.Lines:
-			if t.Err() != nil {
-				log.Printf("Warning: unable to tail %s: %s", file, t.Err())
-				time.Sleep(2 * time.Second) // Sleep for 2 seconds before retrying
-			} else if line == nil {
+			if line == nil {
+				if t.Err() != nil {
+					log.Printf("Warning: unable to tail %s: %s", file, t.Err())
+					errCount++
+					if errCount > 30 {
+						log.Fatalf("Logged %d consecutive errors while tailing. Exiting", errCount)
+					}
+					time.Sleep(2 * time.Second)
+					continue
+				}
+				log.Printf("Exiting due to empty line")
 				return
-			} else {
-				fmt.Fprintln(dest, line.Text)
+			} else if line.Err != nil {
+				log.Printf("Warning: unable to tail %s: %s", file, t.Err())
+				errCount++
+				if errCount > 30 {
+					log.Fatalf("Logged %d consecutive errors while tailing. Exiting", errCount)
+				}
+				time.Sleep(2 * time.Second)
+				continue
 			}
+			fmt.Fprintln(dest, line.Text)
 		}
 	}
 }
