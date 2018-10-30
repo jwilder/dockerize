@@ -91,6 +91,30 @@ func jsonQuery(jsonObj string, query string) (interface{}, error) {
 	return res, nil
 }
 
+func loop(args ...int) (<-chan int, error) {
+	var start, stop, step int
+	switch len(args) {
+	case 1:
+		start, stop, step = 0, args[0], 1
+	case 2:
+		start, stop, step = args[0], args[1], 1
+	case 3:
+		start, stop, step = args[0], args[1], args[2]
+	default:
+		return nil, fmt.Errorf("wrong number of arguments, expected 1-3"+
+			", but got %d", len(args))
+	}
+
+	c := make(chan int)
+	go func() {
+		for i := start; i < stop; i += step {
+			c <- i
+		}
+		close(c)
+	}()
+	return c, nil
+}
+
 func generateFile(templatePath, destPath string) bool {
 	tmpl := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
 		"contains":  contains,
@@ -105,6 +129,7 @@ func generateFile(templatePath, destPath string) bool {
 		"lower":     strings.ToLower,
 		"upper":     strings.ToUpper,
 		"jsonQuery": jsonQuery,
+		"loop":      loop,
 	})
 
 	if len(delims) > 0 {
@@ -113,6 +138,11 @@ func generateFile(templatePath, destPath string) bool {
 	tmpl, err := tmpl.ParseFiles(templatePath)
 	if err != nil {
 		log.Fatalf("unable to parse template: %s", err)
+	}
+
+	// Don't overwrite destination file if it exists and no-overwrite flag passed
+	if _, err := os.Stat(destPath); err == nil && noOverwriteFlag {
+		return false
 	}
 
 	dest := os.Stdout

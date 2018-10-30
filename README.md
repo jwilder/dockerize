@@ -1,45 +1,69 @@
-dockerize ![version v0.3.0](https://img.shields.io/badge/version-v0.3.0-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+dockerize ![version v0.6.1](https://img.shields.io/badge/version-v0.6.1-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 =============
 
 Utility to simplify running applications in docker containers.
 
-dockerize is a utility to simplify running applications in docker containers.  It allows you
-to generate application configuration files at container startup time from templates and
-container environment variables.  It also allows log files to be tailed to stdout and/or
-stderr.
+dockerize is a utility to simplify running applications in docker containers.  It allows you to:
+* generate application configuration files at container startup time from templates and container environment variables
+* Tail multiple log files to stdout and/or stderr
+* Wait for other services to be available using TCP, HTTP(S), unix before starting the main process.
 
-The typical use case for dockerize is when you have an application that has one or more
-configuration files and you would like to control some of the values using environment variables.
+The typical use case for dockerize is when you have an application that has one or more configuration files and you would like to control some of the values using environment variables.
 
 For example, a Python application using Sqlalchemy might not be able to use environment variables directly.
 It may require that the database URL be read from a python settings file with a variable named
 `SQLALCHEMY_DATABASE_URI`.  dockerize allows you to set an environment variable such as
 `DATABASE_URL` and update the python file when the container starts.
+In addition, it can also delay the starting of the python application until the database container is running and listening on the TCP port.
 
 Another use case is when the application logs to specific files on the filesystem and not stdout
 or stderr. This makes it difficult to troubleshoot the container using the `docker logs` command.
 For example, nginx will log to `/var/log/nginx/access.log` and
-`/var/log/nginx/error.log` by default. While you can sometimes work around this, it's tedious to find
-the a solution for every application. dockerize allows you to specify which logs files should
-be tailed and where they should be sent.
+`/var/log/nginx/error.log` by default. While you can sometimes work around this, it's tedious to find a solution for every application. dockerize allows you to specify which logs files should be tailed and where they should be sent.
 
 See [A Simple Way To Dockerize Applications](http://jasonwilder.com/blog/2014/10/13/a-simple-way-to-dockerize-applications/)
+
 
 ## Installation
 
 Download the latest version in your container:
 
-* [linux/amd64](https://github.com/jwilder/dockerize/releases/download/v0.3.0/dockerize-linux-amd64-v0.3.0.tar.gz)
+* [linux/amd64](https://github.com/jwilder/dockerize/releases/download/v0.6.1/dockerize-linux-amd64-v0.6.1.tar.gz)
+* [alpine/amd64](https://github.com/jwilder/dockerize/releases/download/v0.6.1/dockerize-alpine-linux-amd64-v0.6.1.tar.gz)
+* [darwin/amd64](https://github.com/jwilder/dockerize/releases/download/v0.6.1/dockerize-darwin-amd64-v0.6.1.tar.gz)
 
-For Ubuntu Images:
+
+### Docker Base Image
+
+The `jwilder/dockerize` image is a base image based on `alpine linux`.  `dockerize` is installed in the `$PATH` and can be used directly.
+
+```
+FROM jwilder/dockerize
+...
+ENTRYPOINT dockerize ...
+```
+
+### Ubuntu Images
 
 ``` Dockerfile
 RUN apt-get update && apt-get install -y wget
 
-ENV DOCKERIZE_VERSION v0.3.0
+ENV DOCKERIZE_VERSION v0.6.1
 RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
     && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
     && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+```
+
+
+### For Alpine Images:
+
+``` Dockerfile
+RUN apk add --no-cache openssl
+
+ENV DOCKERIZE_VERSION v0.6.1
+RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && tar -C /usr/local/bin -xzvf dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
+    && rm dockerize-alpine-linux-amd64-$DOCKERIZE_VERSION.tar.gz
 ```
 
 ## Usage
@@ -78,6 +102,11 @@ $ dockerize -template src_dir:dest_dir
 
 ```
 
+If the destination file already exists, dockerize will overwrite it. The -no-overwrite flag overrides this behaviour.
+
+```
+$ dockerize -no-overwrite -template template1.tmpl:file
+```
 
 You can tail multiple files to `STDOUT` and `STDERR` by passing the options multiple times.
 
@@ -92,7 +121,6 @@ If `inotify` does not work in you container, you use `-poll` to poll for file ch
 $ dockerize -stdout info.log -stdout perf.log -poll
 
 ```
-
 
 If your file uses `{{` and `}}` as part of it's syntax, you can change the template escape characters using the `-delims`.
 
@@ -110,10 +138,10 @@ $ dockerize -wait http://web:80 -wait-http-header "Authorization:Basic QWxhZGRpb
 
 It is common when using tools like [Docker Compose](https://docs.docker.com/compose/) to depend on services in other linked containers, however oftentimes relying on [links](https://docs.docker.com/compose/compose-file/#links) is not enough - whilst the container itself may have _started_, the _service(s)_ within it may not yet be ready - resulting in shell script hacks to work around race conditions.
 
-Dockerize gives you the ability to wait for services on a specified protocol (`tcp`, `tcp4`, `tcp6`, `http`, `https` and `unix`) before starting your application:
+Dockerize gives you the ability to wait for services on a specified protocol (`file`, `tcp`, `tcp4`, `tcp6`, `http`, `https` and `unix`) before starting your application:
 
 ```
-$ dockerize -wait tcp://db:5432 -wait http://web:80
+$ dockerize -wait tcp://db:5432 -wait http://web:80 -wait file:///tmp/generated-file
 ```
 
 ### Timeout
@@ -149,6 +177,7 @@ There are a few built in functions as well:
   * `lower $value` - Lowercase a string.
   * `upper $value` - Uppercase a string.
   * `jsonQuery $json $query` - Returns the result of a selection query against a json document.
+  * `loop` - Create for loops.
 
 ### jsonQuery
 
@@ -173,6 +202,27 @@ With the following JSON in `.Env.SERVICES`
 ```
 
 the template expression `jsonQuery .Env.SERVICES "services.[1].port"` returns `9000`.
+
+### loop
+
+`loop` allows for creating for loop within a template.  It takes 1 to 3 arguments.
+
+```
+# Loop from 0...10
+{{ range loop 10 }}
+i = {{ . }}
+{{ end }}
+
+# Loop from 5...10
+{{ range $i := loop 5 10 }}
+i = {{ $i }}
+{{ end }}
+
+# Loop from 5...10 by 2
+{{ range $i := loop 5 10 2 }}
+i = {{ $i }}
+{{ end }}
+```
 
 ## License
 

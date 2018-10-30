@@ -1,6 +1,4 @@
 github.com/elgs/gosplitargs e9cf3de21e146ace7f4a8a42af3d51caf7fe2f3b
-github.com/hpcloud/tail 05d326f7170255d4f0c2a57dd00268b9beeb6e59
+github.com/hpcloud/tail faf842bde7ed83bbc3c65a2c454fae39bc29a95f
 github.com/jwilder/gojq 81fa9a608a130323eaf4b4fc00224f7a467ffbd1
 golang.org/x/net 749a502dd1eaf3e5bfd4f8956748c502357c0bbe
-gopkg.in/fsnotify.v0 ea925a0a47d225b2ca7f9932b01d2ed4f3ec74f6
-gopkg.in/tomb.v1 c131134a1947e9afd9cecfe11f4c6dff0732ae58
