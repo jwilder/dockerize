@@ -138,12 +138,17 @@ $ dockerize -wait http://web:80 -wait-http-header "Authorization:Basic QWxhZGRpb
 
 It is common when using tools like [Docker Compose](https://docs.docker.com/compose/) to depend on services in other linked containers, however oftentimes relying on [links](https://docs.docker.com/compose/compose-file/#links) is not enough - whilst the container itself may have _started_, the _service(s)_ within it may not yet be ready - resulting in shell script hacks to work around race conditions.
 
-Dockerize gives you the ability to wait for services on a specified protocol (`file`, `tcp`, `tcp4`, `tcp6`, `http`, `https` and `unix`) before starting your application:
+Dockerize gives you the ability to wait for services on a specified protocol (`file`, `tcp`, `tcp4`, `tcp6`, `http`, `https`, `unix`, and `job`) before starting your application:
 
 ```
 $ dockerize -wait tcp://db:5432 -wait http://web:80 -wait file:///tmp/generated-file
 ```
 
+Job corresponds to a kubernetes job, and can be authenticated with `-remote-cluster` and `-kube-config=$KUBE_PATH`, or by launching it into a pod:
+
+```
+$ dockerize -wait job://custom_namespace:my_job
+```
 ### Timeout
 
 You can optionally specify how long to wait for the services to become available by using the `-timeout #` argument (Default: 10 seconds).  If the timeout is reached and the service is still not available, the process exits with status code 1.

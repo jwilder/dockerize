@@ -3,11 +3,17 @@ package main
 import (
 	"flag"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -57,6 +63,8 @@ var (
 	waitTimeoutFlag   time.Duration
 	dependencyChan    chan struct{}
 	noOverwriteFlag   bool
+	kubeConfigFlag    string
+	remoteClusterFlag bool
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -69,6 +77,13 @@ func (i *hostFlagsVar) String() string {
 func (i *hostFlagsVar) Set(value string) error {
 	*i = append(*i, value)
 	return nil
+}
+
+func homeDir() string {
+	if h := os.Getenv("HOME"); h != "" {
+		return h
+	}
+	return os.Getenv("USERPROFILE") // windows
 }
 
 func (s *sliceVar) Set(value string) error {
@@ -144,8 +159,71 @@ func waitForDependencies() {
 						}
 					}
 				}(u)
+			case "job":
+				wg.Add(1)
+				go func(u url.URL) {
+					defer wg.Done()
+					ticker := time.NewTicker(waitRetryInterval)
+					defer ticker.Stop()
+					var config *rest.Config
+					var err error
+					if remoteClusterFlag {
+						var kubeconfig string
+						if len(kubeConfigFlag) > 0 {
+							kubeconfig = kubeConfigFlag
+						} else {
+							kubeconfig = filepath.Join(homeDir(), ".kube", "config")
+						}
+
+						config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+						if err != nil {
+							panic(err.Error())
+						}
+					} else {
+						config, err = rest.InClusterConfig()
+						if err != nil {
+							panic(err.Error())
+						}
+					}
+
+					clientset, err := kubernetes.NewForConfig(config)
+					if err != nil {
+						panic(err.Error())
+					}
+
+					namespace := "default"
+					var job_name string
+					host_info := strings.Split(u.Host, ":")
+					if len(host_info) > 2 {
+						panic("Bad job name")
+					} else if len(host_info) == 2 {
+						namespace = host_info[0]
+						job_name = host_info[1]
+					} else {
+						job_name = u.Host
+					}
+
+					for range ticker.C {
+						job, err := clientset.BatchV1().Jobs(namespace).Get(job_name, metav1.GetOptions{})
+						if errors.IsNotFound(err) {
+							log.Printf("Job not found. Sleeping %s", waitRetryInterval)
+							continue
+						} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
+							log.Printf("Error getting job %v. Sleeping %s", statusError.ErrStatus.Message, waitRetryInterval)
+							continue
+						} else if err != nil {
+							panic(err.Error())
+						}
+
+						if len(job.Status.Conditions) > 0 && job.Status.Conditions[0].Type == "Complete" {
+							log.Printf("Job complete")
+							return
+						}
+						log.Printf("Found active job as of %s. Sleeping %s", job.Status.StartTime, waitRetryInterval)
+					}
+				}(u)
 			default:
-				log.Fatalf("invalid host protocol provided: %s. supported protocols are: tcp, tcp4, tcp6 and http", u.Scheme)
+				log.Fatalf("invalid host protocol provided: %s. supported protocols are: job, tcp, tcp4, tcp6 and http", u.Scheme)
 			}
 		}
 		wg.Wait()
@@ -213,6 +291,8 @@ func main() {
 
 	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times. Does also support directories")
 	flag.BoolVar(&noOverwriteFlag, "no-overwrite", false, "Do not overwrite destination file if it already exists.")
+	flag.StringVar(&kubeConfigFlag, "kube-config", "", "Use a remote cluster, and authenticate with a config file.")
+	flag.BoolVar(&remoteClusterFlag, "remote-cluster", false, "Use a remote cluster.")
 	flag.Var(&stdoutTailFlag, "stdout", "Tails a file to stdout. Can be passed multiple times")
 	flag.Var(&stderrTailFlag, "stderr", "Tails a file to stderr. Can be passed multiple times")
 	flag.StringVar(&delimsFlag, "delims", "", `template tag delimiters. default "{{":"}}" `)
