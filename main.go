@@ -52,6 +52,7 @@ var (
 	wg           sync.WaitGroup
 
 	envFlag           string
+	multiline		  bool
 	envSection        string
 	envHdrFlag        sliceVar
 	validateCert      bool
@@ -291,6 +292,7 @@ func main() {
 	flag.BoolVar(&version, "version", false, "show version")
 	flag.BoolVar(&poll, "poll", false, "enable polling")
 	flag.StringVar(&envFlag, "env", "", "Optional path to INI file for injecting env vars. Does not overwrite existing env vars")
+	flag.BoolVar(&multiline, "multiline", false, "enable parsing multiline INI entries in INI environment file")
 	flag.StringVar(&envSection, "env-section", "", "Optional section of INI file to use for loading env vars. Defaults to \"\"")
 	flag.Var(&envHdrFlag, "env-header", "Optional string or path to secrets file for http headers passed if -env is a URL")
 	flag.BoolVar(&validateCert, "validate-cert", true, "Verify SSL certs for https connections")
@@ -324,7 +326,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("unreadable INI file %s: %s", envFlag, err)
 		}
-		cfg, err := ini.LoadSources(ini.LoadOptions{}, iniFile)
+		cfg, err := ini.LoadSources(ini.LoadOptions{ AllowPythonMultilineValues: multiline }, iniFile)
 		if err != nil {
 			log.Fatalf("error parsing contents of %s as INI format: %s", envFlag, err)
 		}
