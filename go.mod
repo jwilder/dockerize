@@ -1,4 +1,4 @@
-module github.com/powerman/dockerize
+module github.com/jwilder/dockerize
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
