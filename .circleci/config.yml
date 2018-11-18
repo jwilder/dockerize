@@ -1,0 +1,67 @@
+version: 2.1
+
+jobs:
+    test:
+        docker:
+            - image: circleci/golang:1
+        environment:
+            GOLANGCI_LINT_VER: 1.12.2
+        steps:
+            - checkout
+            - run:
+                name: Initialize
+                command: |
+                    rmdir /go/*/ # fix owner/permission
+                    env | grep _VER | sort > /tmp/tools.ver
+            - restore_cache:
+                keys:
+                    - v1-{{ checksum "/tmp/tools.ver" }}-{{ checksum "go.mod" }}-{{ .Branch }}
+                    - v1-{{ checksum "/tmp/tools.ver" }}-{{ checksum "go.mod" }}-
+                    - v1-{{ checksum "/tmp/tools.ver" }}-
+                    - v1-
+            - run:
+                name: Install tools
+                command: |
+                    cd /
+                    golangci-lint --version | tee /dev/stderr | grep -wq $GOLANGCI_LINT_VER ||
+                        curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b /go/bin v$GOLANGCI_LINT_VER
+                    go get -v github.com/mattn/goveralls
+            - run: go test -mod=readonly -v -race ./...
+            # - run: golangci-lint run
+            - save_cache:
+                when: always
+                key: v1-{{ checksum "/tmp/tools.ver" }}-{{ checksum "go.mod" }}-{{ .Branch }}
+                paths:
+                    - /go/bin/
+                    - /go/pkg/
+                    - /go/src/
+                    - ~/.cache/go-build/
+    release:
+        docker:
+            - image: circleci/golang:1
+        environment:
+            GHR_VER: 0.12.0
+        steps:
+            - checkout
+            - run:
+                name: Install tools
+                command: |
+                    curl -sfL https://github.com/tcnksm/ghr/releases/download/v${GHR_VER}/ghr_v${GHR_VER}_linux_amd64.tar.gz |
+                        tar xzf - -C /tmp && mv /tmp/ghr_v${GHR_VER}_linux_amd64/ghr /go/bin/
+            - run: ./release
+
+workflows:
+    test-and-release:
+        jobs:
+            - test:
+                filters:
+                    tags:
+                        only: /v.*/
+            - release:
+                requires:
+                    - test
+                filters:
+                    tags:
+                        only: /v.*/
+                    branches:
+                        ignore: /.*/
