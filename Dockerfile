@@ -1,14 +1,12 @@
-FROM golang:1.8.3-alpine3.6 AS binary
+FROM golang:1.11-alpine3.7 AS binary
 RUN apk -U add openssl git
 
-ADD . /go/src/github.com/jwilder/dockerize
-WORKDIR /go/src/github.com/jwilder/dockerize
+ADD . /src
+WORKDIR /src
 
-RUN go get github.com/robfig/glock
-RUN glock sync -n < GLOCKFILE
-RUN go install
+RUN CGO_ENABLED=0 go install -ldflags "-X 'main.buildVersion=$(git describe --abbrev=0 --tags)'"
 
-FROM alpine:3.6
+FROM alpine:3.7
 MAINTAINER Jason Wilder <mail@jasonwilder.com>
 
 COPY --from=binary /go/bin/dockerize /usr/local/bin

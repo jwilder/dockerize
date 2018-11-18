@@ -6,10 +6,6 @@ LDFLAGS:=-X main.buildVersion=$(TAG)
 
 all: dockerize
 
-deps:
-	go get github.com/robfig/glock
-	glock sync -n < GLOCKFILE
-
 dockerize:
 	echo "Building dockerize"
 	go install -ldflags "$(LDFLAGS)"
@@ -18,7 +14,7 @@ dist-clean:
 	rm -rf dist
 	rm -f dockerize-*.tar.gz
 
-dist: deps dist-clean
+dist: dist-clean
 	mkdir -p dist/alpine-linux/amd64 && GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -a -tags netgo -installsuffix netgo -o dist/alpine-linux/amd64/dockerize
 	mkdir -p dist/linux/amd64 && GOOS=linux GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o dist/linux/amd64/dockerize
 	mkdir -p dist/linux/386 && GOOS=linux GOARCH=386 go build -ldflags "$(LDFLAGS)" -o dist/linux/386/dockerize
