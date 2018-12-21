@@ -14,6 +14,7 @@ import (
 
 	"golang.org/x/net/context"
 )
+import reaper "github.com/ramr/go-reaper"
 
 const defaultWaitRetryInterval = time.Second
 
@@ -295,6 +296,7 @@ func main() {
 	ctx, cancel = context.WithCancel(context.Background())
 
 	if flag.NArg() > 0 {
+		go reaper.Reap()
 		wg.Add(1)
 		go runCmd(ctx, cancel, flag.Arg(0), flag.Args()[1:]...)
 	}
