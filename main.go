@@ -52,10 +52,11 @@ var (
 	wg           sync.WaitGroup
 
 	envFlag           string
-	multiline		  bool
+	multiline         bool
 	envSection        string
 	envHdrFlag        sliceVar
 	validateCert      bool
+	httpFileFlag      sliceVar
 	templatesFlag     sliceVar
 	templateDirsFlag  sliceVar
 	stdoutTailFlag    sliceVar
@@ -228,59 +229,65 @@ Arguments:
 	println(`For more information, see https://github.com/jwilder/dockerize`)
 }
 
+func getURL(url string, envHdrFlag []string) (iniFile []byte, err error) {
+
+	var resp *http.Response
+	var req *http.Request
+	var hdr string
+	var client *http.Client
+	var tr = http.DefaultTransport
+	// Define redirect handler to disallow redirects
+	var redir = func(req *http.Request, via []*http.Request) error {
+		return errors.New("Redirects disallowed")
+	}
+
+	if !validateCert {
+		tr = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+	}
+	client = &http.Client{Transport: tr, CheckRedirect: redir}
+	req, err = http.NewRequest("GET", url, nil)
+	if err != nil {
+		// Weird problem with declaring client, bail
+		return
+	}
+
+	// Handle headers for request - are they headers or filepaths?
+	for _, h := range envHdrFlag {
+		if strings.Contains(h, ":") {
+			// This will break if path includes colon - don't use colons in path!
+			hdr = h
+		} else { // Treat this is a path to a secrets file containing header
+			var hdrFile []byte
+			hdrFile, err = ioutil.ReadFile(h)
+			if err != nil { // Could not read file, error out
+				return
+			}
+			hdr = string(hdrFile)
+		}
+		parts := strings.Split(hdr, ":")
+		if len(parts) != 2 {
+			log.Fatalf("Bad env-headers argument: %s. expected \"headerName: headerValue\"", hdr)
+		}
+		req.Header.Add(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
+	}
+	resp, err = client.Do(req)
+	if err == nil && resp.StatusCode == 200 {
+		defer resp.Body.Close()
+		iniFile, err = ioutil.ReadAll(resp.Body)
+	} else if err == nil { // Request completed with unexpected HTTP status code, bail
+		err = errors.New(resp.Status)
+	}
+	return
+}
+
 func getINI(envFlag string, envHdrFlag []string) (iniFile []byte, err error) {
 
 	// See if envFlag parses like an absolute URL, if so use http, otherwise treat as filename
 	url, urlERR := url.ParseRequestURI(envFlag)
 	if urlERR == nil && url.IsAbs() {
-		var resp *http.Response
-		var req *http.Request
-		var hdr string
-		var client *http.Client
-		var tr = http.DefaultTransport
-		// Define redirect handler to disallow redirects
-		var redir = func(req *http.Request, via []*http.Request) error {
-			return errors.New("Redirects disallowed")
-		}
-
-		if !validateCert {
-			tr = &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-			}
-		}
-		client = &http.Client{Transport: tr, CheckRedirect: redir}
-		req, err = http.NewRequest("GET", envFlag, nil)
-		if err != nil {
-			// Weird problem with declaring client, bail
-			return
-		}
-		// Handle headers for request - are they headers or filepaths?
-		for _, h := range envHdrFlag {
-			if strings.Contains(h, ":") {
-				// This will break if path includes colon - don't use colons in path!
-				hdr = h
-			} else { // Treat this is a path to a secrets file containing header
-				var hdrFile []byte
-				hdrFile, err = ioutil.ReadFile(h)
-				if err != nil { // Could not read file, error out
-					return
-				}
-				hdr = string(hdrFile)
-			}
-			parts := strings.Split(hdr, ":")
-			if len(parts) != 2 {
-				log.Fatalf("Bad env-headers argument: %s. expected \"headerName: headerValue\"", hdr)
-			}
-			req.Header.Add(strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]))
-		}
-		resp, err = client.Do(req)
-		if err == nil && resp.StatusCode == 200 {
-			defer resp.Body.Close()
-			iniFile, err = ioutil.ReadAll(resp.Body)
-		} else if err == nil { // Request completed with unexpected HTTP status code, bail
-			err = errors.New(resp.Status)
-			return
-		}
+		iniFile, err = getURL(envFlag, envHdrFlag)
 	} else {
 		iniFile, err = ioutil.ReadFile(envFlag)
 	}
@@ -294,10 +301,11 @@ func main() {
 	flag.StringVar(&envFlag, "env", "", "Optional path to INI file for injecting env vars. Does not overwrite existing env vars")
 	flag.BoolVar(&multiline, "multiline", false, "enable parsing multiline INI entries in INI environment file")
 	flag.StringVar(&envSection, "env-section", "", "Optional section of INI file to use for loading env vars. Defaults to \"\"")
-	flag.Var(&envHdrFlag, "env-header", "Optional string or path to secrets file for http headers passed if -env is a URL")
+	flag.Var(&envHdrFlag, "env-header", "Optional string or path to secrets file for http headers passed if -env or -httpFile are URLs")
 	flag.BoolVar(&validateCert, "validate-cert", true, "Verify SSL certs for https connections")
 	flag.IntVar(&eGID, "egid", -1, "Set the numeric group ID for the running program") // Check for -1 later to skip
 	flag.IntVar(&eUID, "euid", -1, "Set the numeric user id for the running program")
+	flag.Var(&httpFileFlag, "httpFile", "Source URL and dest path (http://blah.com/blahblah~/dest). Pulls file from URL using env-header for auth and writes file to destination. Use tilde to separate URL from destination file")
 	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times. Does also support directories")
 	flag.BoolVar(&noOverwriteFlag, "no-overwrite", false, "Do not overwrite destination file if it already exists.")
 	flag.Var(&stdoutTailFlag, "stdout", "Tails a file to stdout. Can be passed multiple times")
@@ -326,7 +334,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("unreadable INI file %s: %s", envFlag, err)
 		}
-		cfg, err := ini.LoadSources(ini.LoadOptions{ AllowPythonMultilineValues: multiline }, iniFile)
+		cfg, err := ini.LoadSources(ini.LoadOptions{AllowPythonMultilineValues: multiline}, iniFile)
 		if err != nil {
 			log.Fatalf("error parsing contents of %s as INI format: %s", envFlag, err)
 		}
@@ -372,6 +380,27 @@ func main() {
 			log.Fatalf(errMsg, headersFlag)
 		}
 
+	}
+
+	for _, httpFile := range httpFileFlag {
+		delim := "~"
+		if strings.Contains(httpFile, delim) {
+			parts := strings.Split(httpFile, delim)
+			if len(parts) != 2 {
+				log.Fatalf("bad httpFile argument: %s. expected \"URL;/dest\"", httpFile)
+			}
+			srcURL, dest := parts[0], parts[1]
+			httpSrc, err := getURL(srcURL, envHdrFlag)
+			if err != nil {
+				log.Fatalf("unable to fetch contents of url %s, error: %s", srcURL, err)
+			}
+			err = ioutil.WriteFile(dest, httpSrc, 0644)
+			if err != nil {
+				log.Fatalf("unable to write httpFile contents to %s, error: %s", dest, err)
+			}
+		} else {
+			log.Fatalf("-httpFile switch missing %s delimiter: %s", delim, httpFile)
+		}
 	}
 
 	for _, t := range templatesFlag {
