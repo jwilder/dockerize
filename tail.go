@@ -14,7 +14,7 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 	defer wg.Done()
 
 	var isPipe bool
-	var errCount int = 0
+	var errCount int
 	const maxErr = 30
 	const sleepDur = 2 * time.Second
 
