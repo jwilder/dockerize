@@ -24,7 +24,7 @@ dist: deps dist-clean
 	mkdir -p dist/linux/386 && GOOS=linux GOARCH=386 go build -ldflags "$(LDFLAGS)" -o dist/linux/386/dockerize
 	mkdir -p dist/linux/armel && GOOS=linux GOARCH=arm GOARM=5 go build -ldflags "$(LDFLAGS)" -o dist/linux/armel/dockerize
 	mkdir -p dist/linux/armhf && GOOS=linux GOARCH=arm GOARM=6 go build -ldflags "$(LDFLAGS)" -o dist/linux/armhf/dockerize
-	mkdir -p dist/linux/armhf && GOOS=linux GOARCH=aarch64 go build -ldflags "$(LDFLAGS)" -o dist/linux/aarch64/dockerize
+	mkdir -p dist/linux/aarch64 && GOOS=linux GOARCH=aarch64 go build -ldflags "$(LDFLAGS)" -o dist/linux/aarch64/dockerize
 	mkdir -p dist/darwin/amd64 && GOOS=darwin GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o dist/darwin/amd64/dockerize
 
 release: dist
