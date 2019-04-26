@@ -6,6 +6,7 @@ WORKDIR /go/src/github.com/jwilder/dockerize
 
 RUN go get github.com/robfig/glock
 RUN glock sync -n < GLOCKFILE
+ENV CGO_ENABLED 0
 RUN go install
 
 FROM alpine:3.6
