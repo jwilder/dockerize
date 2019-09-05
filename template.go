@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"text/template"
 
+	"github.com/Masterminds/sprig"
 	"github.com/jwilder/gojq"
 )
 
@@ -116,7 +117,7 @@ func loop(args ...int) (<-chan int, error) {
 }
 
 func generateFile(templatePath, destPath string) bool {
-	tmpl := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
+	funcMap := template.FuncMap{
 		"contains":  contains,
 		"exists":    exists,
 		"split":     strings.Split,
@@ -130,7 +131,13 @@ func generateFile(templatePath, destPath string) bool {
 		"upper":     strings.ToUpper,
 		"jsonQuery": jsonQuery,
 		"loop":      loop,
-	})
+	}
+	for k, v := range sprig.FuncMap() {
+		if _, ok := funcMap[k]; !ok {
+			funcMap[k] = v
+		}
+	}
+	tmpl := template.New(filepath.Base(templatePath)).Funcs(funcMap)
 
 	if len(delims) > 0 {
 		tmpl = tmpl.Delims(delims[0], delims[1])

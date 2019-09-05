@@ -2,3 +2,4 @@ github.com/elgs/gosplitargs e9cf3de21e146ace7f4a8a42af3d51caf7fe2f3b
 github.com/hpcloud/tail faf842bde7ed83bbc3c65a2c454fae39bc29a95f
 github.com/jwilder/gojq 81fa9a608a130323eaf4b4fc00224f7a467ffbd1
 golang.org/x/net 749a502dd1eaf3e5bfd4f8956748c502357c0bbe
+github.com/Masterminds/sprig 6f509977777c33eae63b2136d97f7b976cb971cc
