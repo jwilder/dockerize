@@ -43,20 +43,21 @@ var (
 	poll         bool
 	wg           sync.WaitGroup
 
-	templatesFlag     sliceVar
-	templateDirsFlag  sliceVar
-	stdoutTailFlag    sliceVar
-	stderrTailFlag    sliceVar
-	headersFlag       sliceVar
-	delimsFlag        string
-	delims            []string
-	headers           []HttpHeader
-	urls              []url.URL
-	waitFlag          hostFlagsVar
-	waitRetryInterval time.Duration
-	waitTimeoutFlag   time.Duration
-	dependencyChan    chan struct{}
-	noOverwriteFlag   bool
+	templatesFlag      sliceVar
+	templateDirsFlag   sliceVar
+	stdoutTailFlag     sliceVar
+	stderrTailFlag     sliceVar
+	headersFlag        sliceVar
+	delimsFlag         string
+	delims             []string
+	headers            []HttpHeader
+	urls               []url.URL
+	waitFlag           hostFlagsVar
+	waitRetryInterval  time.Duration
+	waitTimeoutFlag    time.Duration
+	expectResponseCode int
+	dependencyChan     chan struct{}
+	noOverwriteFlag    bool
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -135,7 +136,10 @@ func waitForDependencies() {
 						if err != nil {
 							log.Printf("Problem with request: %s. Sleeping %s\n", err.Error(), waitRetryInterval)
 							time.Sleep(waitRetryInterval)
-						} else if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
+						} else if resp.StatusCode == expectResponseCode {
+							log.Printf("Received user expected response code %d from %s\n", resp.StatusCode, u.String())
+							return
+						} else if err == nil && expectResponseCode == 0 && resp.StatusCode >= 200 && resp.StatusCode < 300 {
 							log.Printf("Received %d from %s\n", resp.StatusCode, u.String())
 							return
 						} else {
@@ -220,6 +224,7 @@ func main() {
 	flag.Var(&waitFlag, "wait", "Host (tcp/tcp4/tcp6/http/https/unix/file) to wait for before this container starts. Can be passed multiple times. e.g. tcp://db:5432")
 	flag.DurationVar(&waitTimeoutFlag, "timeout", 10*time.Second, "Host wait timeout")
 	flag.DurationVar(&waitRetryInterval, "wait-retry-interval", defaultWaitRetryInterval, "Duration to wait before retrying")
+	flag.IntVar(&expectResponseCode, "expect-response-code", 0, "Http response code expected")
 
 	flag.Usage = usage
 	flag.Parse()
