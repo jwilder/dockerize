@@ -115,6 +115,20 @@ func loop(args ...int) (<-chan int, error) {
 	return c, nil
 }
 
+func readFile(fileName string) (string, error) {
+	data, err := ioutil.ReadFile(fileName)
+	return string(data), err
+}
+
+func envValue(env string) (string, error) {
+	envFile := os.Getenv(env + "_FILE")
+	if len(envFile) > 0 {
+		return readFile(envFile)
+	} else {
+		return os.Getenv(env), nil
+	}
+}
+
 func generateFile(templatePath, destPath string) bool {
 	tmpl := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
 		"contains":  contains,
@@ -130,6 +144,8 @@ func generateFile(templatePath, destPath string) bool {
 		"upper":     strings.ToUpper,
 		"jsonQuery": jsonQuery,
 		"loop":      loop,
+		"readFile":  readFile,
+		"envValue":  envValue,
 	})
 
 	if len(delims) > 0 {
