@@ -115,21 +115,29 @@ func loop(args ...int) (<-chan int, error) {
 	return c, nil
 }
 
+func isStrFullMatch(src, dst string) bool {
+	if src == dst {
+		return true
+	}
+	return false
+}
+
 func generateFile(templatePath, destPath string) bool {
 	tmpl := template.New(filepath.Base(templatePath)).Funcs(template.FuncMap{
-		"contains":  contains,
-		"exists":    exists,
-		"split":     strings.Split,
-		"replace":   strings.Replace,
-		"default":   defaultValue,
-		"parseUrl":  parseUrl,
-		"atoi":      strconv.Atoi,
-		"add":       add,
-		"isTrue":    isTrue,
-		"lower":     strings.ToLower,
-		"upper":     strings.ToUpper,
-		"jsonQuery": jsonQuery,
-		"loop":      loop,
+		"contains":       contains,
+		"exists":         exists,
+		"split":          strings.Split,
+		"replace":        strings.Replace,
+		"default":        defaultValue,
+		"parseUrl":       parseUrl,
+		"atoi":           strconv.Atoi,
+		"add":            add,
+		"isTrue":         isTrue,
+		"lower":          strings.ToLower,
+		"upper":          strings.ToUpper,
+		"jsonQuery":      jsonQuery,
+		"loop":           loop,
+		"isStrFullMatch": isStrFullMatch,
 	})
 
 	if len(delims) > 0 {
