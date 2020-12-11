@@ -178,6 +178,7 @@ There are a few built in functions as well:
   * `upper $value` - Uppercase a string.
   * `jsonQuery $json $query` - Returns the result of a selection query against a json document.
   * `loop` - Create for loops.
+  * `isStrFullMatch` - Returns true if a string is match another string
 
 ### jsonQuery
 
