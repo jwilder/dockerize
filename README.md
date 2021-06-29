@@ -68,6 +68,38 @@ RUN wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSI
 
 ## Usage
 
+`dockerize [options] [command]`
+
+Utility to simplify running applications in docker containers
+
+Options:
+  `-delims string`
+    	template tag delimiters. default "{{":"}}"
+  `-no-overwrite`
+    	Do not overwrite destination file if it already exists.
+  `-poll`
+    	enable polling
+  `-stderr value`
+    	Tails a file to stderr. Can be passed multiple times
+  `-stdout value`
+    	Tails a file to stdout. Can be passed multiple times
+  `-template value`
+    	Template (/template:/dest). Can be passed multiple times. Does also support directories
+  `-timeout duration`
+    	Host wait timeout (default 10s)
+  `-version`
+    	show version
+  `-wait value`
+    	Host (tcp/tcp4/tcp6/http/https/unix) to wait for before this container starts. Can be passed multiple times. e.g. tcp://db:5432
+  `-wait-http-header value`
+    	HTTP headers, colon separated. e.g "Accept-Encoding: gzip". Can be passed multiple times
+  `-wait-retry-interval duration`
+    	Duration to wait before retrying (default 1s)
+
+Arguments:
+  `command` - command to be executed
+
+
 dockerize works by wrapping the call to your application using the `ENTRYPOINT` or `CMD` directives.
 
 This would generate `/etc/nginx/nginx.conf` from the template located at `/etc/nginx/nginx.tmpl` and
