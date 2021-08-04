@@ -180,6 +180,7 @@ func waitForSocket(scheme, addr string, timeout time.Duration) {
 			}
 			if conn != nil {
 				log.Printf("Connected to %s://%s\n", scheme, addr)
+				conn.Close()
 				return
 			}
 		}
