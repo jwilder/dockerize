@@ -3,12 +3,12 @@
 
 TAG:=`git describe --abbrev=0 --tags`
 LDFLAGS:=-X main.buildVersion=$(TAG)
+GO111MODULE:=on
 
 all: dockerize
 
 deps:
-	go get github.com/robfig/glock
-	glock sync -n < GLOCKFILE
+	go mod tidy
 
 dockerize:
 	echo "Building dockerize"
