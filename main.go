@@ -95,6 +95,10 @@ func waitForDependencies() {
 					ticker := time.NewTicker(waitRetryInterval)
 					defer ticker.Stop()
 					var err error
+					if _, err = os.Stat(u.Path); err == nil {
+						log.Printf("File %s had been generated\n", u.String())
+						return
+					}
 					for range ticker.C {
 						if _, err = os.Stat(u.Path); err == nil {
 							log.Printf("File %s had been generated\n", u.String())
