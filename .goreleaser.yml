@@ -1,0 +1,31 @@
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+builds:
+  - ldflags:
+    - -s -w -X main.buildVersion={{ .Version }}
+    tags:
+      - netgo
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - "6"
+      - "7"
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+env_files:
+  github_token: ~/.github-token
