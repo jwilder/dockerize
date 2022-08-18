@@ -1,9 +1,10 @@
 module github.com/jwilder/dockerize
 
-go 1.17
+go 1.18
 
 require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
+	github.com/go-sql-driver/mysql v1.6.0
 	github.com/hpcloud/tail v1.0.1-0.20170207023346-faf842bde7ed
 	github.com/jwilder/gojq v0.0.0-20160421194050-81fa9a608a13
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2

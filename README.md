@@ -144,6 +144,12 @@ Dockerize gives you the ability to wait for services on a specified protocol (`f
 $ dockerize -wait tcp://db:5432 -wait http://web:80 -wait file:///tmp/generated-file
 ```
 
+Waiting for the MySQL database to be up and running
+
+```
+$ dockerize -wait mysql://user:password@127.0.0.1:3306/db -timeout 120s
+```
+
 ### Timeout
 
 You can optionally specify how long to wait for the services to become available by using the `-timeout #` argument (Default: 10 seconds).  If the timeout is reached and the service is still not available, the process exits with status code 1.

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"fmt"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"golang.org/x/net/context"
 )
 
@@ -148,6 +150,8 @@ func waitForDependencies() {
 						}
 					}
 				}(u)
+			case "mysql":
+				waitForMySQLConnection(u, waitTimeoutFlag)
 			default:
 				log.Fatalf("invalid host protocol provided: %s. supported protocols are: tcp, tcp4, tcp6 and http", u.Scheme)
 			}
@@ -183,6 +187,33 @@ func waitForSocket(scheme, addr string, timeout time.Duration) {
 	}()
 }
 
+func waitForMySQLConnection(u url.URL, timeout time.Duration) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		dsn := fmt.Sprintf("%s@tcp(%s)%s", u.User.String(), u.Host, u.Path)
+		for {
+			conn, err := sql.Open(u.Scheme, dsn)
+			if err != nil {
+				log.Printf("Problem with mysql connection: %v. Sleeping %s\n", err, waitRetryInterval)
+				time.Sleep(waitRetryInterval)
+			}
+
+			if conn != nil {
+				_, err := conn.Query("SELECT 1")
+				if err != nil {
+					log.Printf("Database is not ready yet: %v, Sleeping %s\n", err, waitRetryInterval)
+					time.Sleep(waitRetryInterval)
+				} else {
+					conn.Close()
+					log.Printf("Connected to %s:***@%s%s\n", u.User.Username(), u.Host, u.Path)
+					return
+				}
+			}
+		}
+	}()
+}
+
 func usage() {
 	println(`Usage: dockerize [options] [command]
 
@@ -204,7 +235,8 @@ Arguments:
    dockerize -template nginx.tmpl:/etc/nginx/nginx.conf \
              -stdout /var/log/nginx/access.log \
              -stderr /var/log/nginx/error.log \
-             -wait tcp://web:8000 nginx
+             -wait tcp://web:8000 nginx \
+			 -wait mysql://user:password@127.0.0.1:3306/db
 	`)
 
 	println(`For more information, see https://github.com/jwilder/dockerize`)
