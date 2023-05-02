@@ -36,7 +36,7 @@ func contains(item map[string]string, key string) bool {
 
 func defaultValue(args ...interface{}) (string, error) {
 	if len(args) == 0 {
-		return "", fmt.Errorf("default called with no values!")
+		return "", fmt.Errorf("default called with no values")
 	}
 
 	if len(args) > 0 {
@@ -47,11 +47,11 @@ func defaultValue(args ...interface{}) (string, error) {
 
 	if len(args) > 1 {
 		if args[1] == nil {
-			return "", fmt.Errorf("default called with nil default value!")
+			return "", fmt.Errorf("default called with nil default value")
 		}
 
 		if _, ok := args[1].(string); !ok {
-			return "", fmt.Errorf("default is not a string value. hint: surround it w/ double quotes.")
+			return "", fmt.Errorf("default is not a string value. hint: surround it w/ double quotes")
 		}
 
 		return args[1].(string), nil
@@ -60,7 +60,7 @@ func defaultValue(args ...interface{}) (string, error) {
 	return "", fmt.Errorf("default called with no default value")
 }
 
-func parseUrl(rawurl string) *url.URL {
+func parseURL(rawurl string) *url.URL {
 	u, err := url.Parse(rawurl)
 	if err != nil {
 		log.Fatalf("unable to parse url %s: %s", rawurl, err)
@@ -123,7 +123,7 @@ func generateFile(templatePath, destPath string) bool {
 		"split":     strings.Split,
 		"replace":   strings.Replace,
 		"default":   defaultValue,
-		"parseUrl":  parseUrl,
+		"parseUrl":  parseURL,
 		"atoi":      strconv.Atoi,
 		"add":       add,
 		"isTrue":    isTrue,
