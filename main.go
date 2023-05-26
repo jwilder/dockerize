@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -141,9 +143,14 @@ func waitForDependencies() {
 							time.Sleep(waitRetryInterval)
 						} else if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
 							log.Printf("Received %d from %s\n", resp.StatusCode, u.String())
+							// dispose the response body and close it.
+							io.Copy(ioutil.Discard, resp.Body)
+							resp.Body.Close()
 							return
 						} else {
 							log.Printf("Received %d from %s. Sleeping %s\n", resp.StatusCode, u.String(), waitRetryInterval)
+							io.Copy(ioutil.Discard, resp.Body)
+							resp.Body.Close()
 							time.Sleep(waitRetryInterval)
 						}
 					}
@@ -177,6 +184,7 @@ func waitForSocket(scheme, addr string, timeout time.Duration) {
 			}
 			if conn != nil {
 				log.Printf("Connected to %s://%s\n", scheme, addr)
+				conn.Close()
 				return
 			}
 		}
