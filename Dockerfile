@@ -6,6 +6,8 @@ COPY *.go go.* /go/src/github.com/jwilder/dockerize/
 
 ENV GO111MODULE=on
 RUN go mod tidy
+ENV CGO_ENABLED 0
+
 RUN go install
 
 FROM alpine:3.15
