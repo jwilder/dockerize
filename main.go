@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -144,12 +143,12 @@ func waitForDependencies() {
 						} else if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
 							log.Printf("Received %d from %s\n", resp.StatusCode, u.String())
 							// dispose the response body and close it.
-							io.Copy(ioutil.Discard, resp.Body)
+							io.Copy(io.Discard, resp.Body)
 							resp.Body.Close()
 							return
 						} else {
 							log.Printf("Received %d from %s. Sleeping %s\n", resp.StatusCode, u.String(), waitRetryInterval)
-							io.Copy(ioutil.Discard, resp.Body)
+							io.Copy(io.Discard, resp.Body)
 							resp.Body.Close()
 							time.Sleep(waitRetryInterval)
 						}

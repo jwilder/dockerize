@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
@@ -189,7 +188,7 @@ func generateDir(templateDir, destDir string) bool {
 		}
 	}
 
-	files, err := ioutil.ReadDir(templateDir)
+	files, err := os.ReadDir(templateDir)
 	if err != nil {
 		log.Fatalf("bad directory: %s, error: %s", templateDir, err)
 	}
