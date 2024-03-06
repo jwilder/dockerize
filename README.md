@@ -115,7 +115,7 @@ $ dockerize -stdout info.log -stdout perf.log
 
 ```
 
-If `inotify` does not work in you container, you use `-poll` to poll for file changes instead.
+If `inotify` does not work in your container, you can use `-poll` to poll for file changes instead.
 
 ```
 $ dockerize -stdout info.log -stdout perf.log -poll
