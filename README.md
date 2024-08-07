@@ -1,4 +1,4 @@
-dockerize ![version v0.7.0](https://img.shields.io/badge/version-v0.7.0-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+dockerize ![version v0.8.0](https://img.shields.io/badge/version-v0.8.0-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 =============
 
 Utility to simplify running applications in docker containers.
@@ -28,9 +28,9 @@ See [A Simple Way To Dockerize Applications](http://jasonwilder.com/blog/2014/10
 
 Download the latest version in your container:
 
-* [linux/amd64](https://github.com/jwilder/dockerize/releases/download/v0.7.0/dockerize-linux-amd64-v0.7.0.tar.gz)
-* [alpine/amd64](https://github.com/jwilder/dockerize/releases/download/v0.7.0/dockerize-alpine-linux-amd64-v0.7.0.tar.gz)
-* [darwin/amd64](https://github.com/jwilder/dockerize/releases/download/v0.7.0/dockerize-darwin-amd64-v0.7.0.tar.gz)
+* [linux/amd64](https://github.com/jwilder/dockerize/releases/download/v0.8.0/dockerize-linux-amd64-v0.8.0.tar.gz)
+* [alpine/amd64](https://github.com/jwilder/dockerize/releases/download/v0.8.0/dockerize-alpine-linux-amd64-v0.8.0.tar.gz)
+* [darwin/amd64](https://github.com/jwilder/dockerize/releases/download/v0.8.0/dockerize-darwin-amd64-v0.8.0.tar.gz)
 
 
 ### Docker Base Image
@@ -46,7 +46,7 @@ ENTRYPOINT dockerize ...
 ### Ubuntu Images
 
 ``` Dockerfile
-ENV DOCKERIZE_VERSION v0.7.0
+ENV DOCKERIZE_VERSION v0.8.0
 
 RUN apt-get update \
     && apt-get install -y wget \
@@ -58,7 +58,7 @@ RUN apt-get update \
 ### For Alpine Images:
 
 ``` Dockerfile
-ENV DOCKERIZE_VERSION v0.7.0
+ENV DOCKERIZE_VERSION v0.8.0
 
 RUN apk update --no-cache \
     && apk add --no-cache wget openssl \
@@ -163,7 +163,7 @@ variables within a template with `.Env`.
 {{ .Env.PATH }} is my path
 ```
 
-There are a few built in functions as well:
+There are a few built-in functions as well:
 
   * `default $var $default` - Returns a default value for one that does not exist. `{{ default .Env.VERSION "0.1.2" }}`
   * `contains $map $key` - Returns true if a string is within another string
