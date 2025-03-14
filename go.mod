@@ -2,11 +2,13 @@ module github.com/jwilder/dockerize
 
 go 1.23.4
 
+toolchain go1.24.1
+
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/jwilder/gojq v0.0.0-20161018055142-c550732d4a52
-	golang.org/x/net v0.34.0
+	golang.org/x/net v0.37.0
 )
 
 require (
