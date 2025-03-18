@@ -1,4 +1,4 @@
-dockerize ![version v0.9.2](https://img.shields.io/badge/version-v0.9.2-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+dockerize ![version v0.9.3](https://img.shields.io/badge/version-v0.9.3-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 =============
 
 Utility to simplify running applications in docker containers.
@@ -28,9 +28,9 @@ See [A Simple Way To Dockerize Applications](http://jasonwilder.com/blog/2014/10
 
 Download the latest version in your container:
 
-* [linux/amd64](https://github.com/jwilder/dockerize/releases/download/v0.9.2/dockerize-linux-amd64-v0.9.2.tar.gz)
-* [alpine/amd64](https://github.com/jwilder/dockerize/releases/download/v0.9.2/dockerize-alpine-linux-amd64-v0.9.2.tar.gz)
-* [darwin/amd64](https://github.com/jwilder/dockerize/releases/download/v0.9.2/dockerize-darwin-amd64-v0.9.2.tar.gz)
+* [linux/amd64](https://github.com/jwilder/dockerize/releases/download/v0.9.3/dockerize-linux-amd64-v0.9.3.tar.gz)
+* [alpine/amd64](https://github.com/jwilder/dockerize/releases/download/v0.9.3/dockerize-alpine-linux-amd64-v0.9.3.tar.gz)
+* [darwin/amd64](https://github.com/jwilder/dockerize/releases/download/v0.9.3/dockerize-darwin-amd64-v0.9.3.tar.gz)
 
 
 ### Docker Base Image
@@ -46,7 +46,7 @@ ENTRYPOINT dockerize ...
 ### Ubuntu Images
 
 ``` Dockerfile
-ENV DOCKERIZE_VERSION v0.9.2
+ENV DOCKERIZE_VERSION v0.9.3
 
 RUN apt-get update \
     && apt-get install -y wget \
@@ -58,7 +58,7 @@ RUN apt-get update \
 ### For Alpine Images:
 
 ``` Dockerfile
-ENV DOCKERIZE_VERSION v0.9.2
+ENV DOCKERIZE_VERSION v0.9.3
 
 RUN apk update --no-cache \
     && apk add --no-cache wget openssl \
