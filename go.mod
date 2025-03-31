@@ -6,7 +6,7 @@ require (
 	github.com/Masterminds/sprig/v3 v3.3.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/jwilder/gojq v0.0.0-20161018055142-c550732d4a52
-	golang.org/x/net v0.37.0
+	golang.org/x/net v0.38.0
 )
 
 require (
