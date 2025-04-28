@@ -29,8 +29,12 @@ See [A Simple Way To Dockerize Applications](http://jasonwilder.com/blog/2014/10
 Download the latest version in your container:
 
 * [linux/amd64](https://github.com/jwilder/dockerize/releases/download/v0.9.3/dockerize-linux-amd64-v0.9.3.tar.gz)
+* [linux/armel](https://github.com/jwilder/dockerize/releases/download/v0.9.3/dockerize-linux-armel-v0.9.3.tar.gz)
+* [linux/arm64](https://github.com/jwilder/dockerize/releases/download/v0.9.3/dockerize-linux-arm64-v0.9.3.tar.gz)
+* [linux/armhf](https://github.com/jwilder/dockerize/releases/download/v0.9.3/dockerize-linux-armhf-v0.9.3.tar.gz)
 * [alpine/amd64](https://github.com/jwilder/dockerize/releases/download/v0.9.3/dockerize-alpine-linux-amd64-v0.9.3.tar.gz)
 * [darwin/amd64](https://github.com/jwilder/dockerize/releases/download/v0.9.3/dockerize-darwin-amd64-v0.9.3.tar.gz)
+* [darwin/arm64](https://github.com/jwilder/dockerize/releases/download/v0.9.3/dockerize-darwin-arm64-v0.9.3.tar.gz)
 
 
 ### Docker Base Image
