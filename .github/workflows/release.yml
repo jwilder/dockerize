@@ -16,9 +16,13 @@ jobs:
           fetch-depth: 0  # Fetch all history for git describe to work
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version-file: 'go.mod'
+          check-latest: true
+
+      - name: Check Go version used:
+        run: go version
 
       - name: Get tag name
         id: tag
