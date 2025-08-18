@@ -194,7 +194,11 @@ func generateDir(templateDir, destDir string) bool {
 	}
 
 	for _, file := range files {
-		if destDir == "" {
+		if file.IsDir() {
+			nextDestination := filepath.Join(destDir, file.Name())
+			os.Mkdir(nextDestination, file.Mode())
+			generateDir(filepath.Join(templateDir, file.Name()), nextDestination)
+		} else if destDir == "" {
 			generateFile(filepath.Join(templateDir, file.Name()), "")
 		} else {
 			generateFile(filepath.Join(templateDir, file.Name()), filepath.Join(destDir, file.Name()))
