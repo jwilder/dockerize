@@ -1,4 +1,4 @@
-dockerize ![version v0.9.4](https://img.shields.io/badge/version-v0.9.4-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+dockerize ![version v0.9.6](https://img.shields.io/badge/version-v0.9.6-brightgreen.svg) ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 =============
 
 Utility to simplify running applications in docker containers.
@@ -28,13 +28,13 @@ See [A Simple Way To Dockerize Applications](http://jasonwilder.com/blog/2014/10
 
 Download the latest version in your container:
 
-* [linux/amd64](https://github.com/jwilder/dockerize/releases/download/v0.9.4/dockerize-linux-amd64-v0.9.4.tar.gz)
-* [linux/armel](https://github.com/jwilder/dockerize/releases/download/v0.9.4/dockerize-linux-armel-v0.9.4.tar.gz)
-* [linux/arm64](https://github.com/jwilder/dockerize/releases/download/v0.9.4/dockerize-linux-arm64-v0.9.4.tar.gz)
-* [linux/armhf](https://github.com/jwilder/dockerize/releases/download/v0.9.4/dockerize-linux-armhf-v0.9.4.tar.gz)
-* [alpine/amd64](https://github.com/jwilder/dockerize/releases/download/v0.9.4/dockerize-alpine-linux-amd64-v0.9.4.tar.gz)
-* [darwin/amd64](https://github.com/jwilder/dockerize/releases/download/v0.9.4/dockerize-darwin-amd64-v0.9.4.tar.gz)
-* [darwin/arm64](https://github.com/jwilder/dockerize/releases/download/v0.9.4/dockerize-darwin-arm64-v0.9.4.tar.gz)
+* [linux/amd64](https://github.com/jwilder/dockerize/releases/download/v0.9.6/dockerize-linux-amd64-v0.9.6.tar.gz)
+* [linux/armel](https://github.com/jwilder/dockerize/releases/download/v0.9.6/dockerize-linux-armel-v0.9.6.tar.gz)
+* [linux/arm64](https://github.com/jwilder/dockerize/releases/download/v0.9.6/dockerize-linux-arm64-v0.9.6.tar.gz)
+* [linux/armhf](https://github.com/jwilder/dockerize/releases/download/v0.9.6/dockerize-linux-armhf-v0.9.6.tar.gz)
+* [alpine/amd64](https://github.com/jwilder/dockerize/releases/download/v0.9.6/dockerize-alpine-linux-amd64-v0.9.6.tar.gz)
+* [darwin/amd64](https://github.com/jwilder/dockerize/releases/download/v0.9.6/dockerize-darwin-amd64-v0.9.6.tar.gz)
+* [darwin/arm64](https://github.com/jwilder/dockerize/releases/download/v0.9.6/dockerize-darwin-arm64-v0.9.6.tar.gz)
 
 
 ### Docker Base Image
@@ -50,7 +50,7 @@ ENTRYPOINT dockerize ...
 ### Ubuntu Images
 
 ``` Dockerfile
-ENV DOCKERIZE_VERSION v0.9.4
+ENV DOCKERIZE_VERSION v0.9.6
 
 RUN apt-get update \
     && apt-get install -y wget \
@@ -62,7 +62,7 @@ RUN apt-get update \
 ### For Alpine Images:
 
 ``` Dockerfile
-ENV DOCKERIZE_VERSION v0.9.4
+ENV DOCKERIZE_VERSION v0.9.6
 
 RUN apk update --no-cache \
     && apk add --no-cache wget openssl \
