@@ -30,6 +30,7 @@ dist: deps dist-clean
 	mkdir -p dist/darwin/amd64 && GOOS=darwin GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o dist/darwin/amd64/dockerize
 	mkdir -p dist/darwin/amd64 && GOOS=darwin GOARCH=arm64 go build -ldflags "$(LDFLAGS)" -o dist/darwin/arm64/dockerize
 	mkdir -p dist/linux/s390x && GOOS=linux GOARCH=s390x go build -ldflags "$(LDFLAGS)" -o dist/linux/s390x/dockerize
+	mkdir -p dist/linux/riscv64 && GOOS=linux GOARCH=riscv64 go build -ldflags "$(LDFLAGS)" -o dist/linux/riscv64/dockerize
 
 release: dist
 	tar -cvzf dockerize-alpine-linux-amd64-$(TAG).tar.gz -C dist/alpine-linux/amd64 dockerize
@@ -43,3 +44,4 @@ release: dist
 	tar -cvzf dockerize-darwin-amd64-$(TAG).tar.gz -C dist/darwin/amd64 dockerize
 	tar -cvzf dockerize-darwin-arm64-$(TAG).tar.gz -C dist/darwin/arm64 dockerize
 	tar -cvzf dockerize-linux-s390x-$(TAG).tar.gz -C dist/linux/s390x dockerize
+	tar -cvzf dockerize-linux-riscv64-$(TAG).tar.gz -C dist/linux/riscv64 dockerize
