@@ -151,3 +151,13 @@ jobs:
           asset_path: ./dockerize-linux-s390x-${{ steps.tag.outputs.tag }}.tar.gz
           asset_name: dockerize-linux-s390x-${{ steps.tag.outputs.tag }}.tar.gz
           asset_content_type: application/gzip
+
+      - name: Upload Linux RISCV64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dockerize-linux-riscv64-${{ steps.tag.outputs.tag }}.tar.gz
+          asset_name: dockerize-linux-riscv64-${{ steps.tag.outputs.tag }}.tar.gz
+          asset_content_type: application/gzip
