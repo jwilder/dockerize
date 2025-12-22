@@ -1,6 +1,7 @@
 package main
 
 import (
+	gojson "encoding/json"
 	"fmt"
 	"log"
 	"net/url"
@@ -79,6 +80,25 @@ func isTrue(s string) bool {
 	return false
 }
 
+func json(data interface{}, args ...string) (string, error) {
+	prefix := ""
+	indent := "  "
+
+	if len(args) > 0 {
+		prefix = args[0]
+	}
+
+	if len(args) > 1 {
+		indent = args[1]
+	}
+
+	j, err := gojson.MarshalIndent(data, prefix, indent)
+	if err != nil {
+		return "", err
+	}
+	return string(j), err
+}
+
 func jsonQuery(jsonObj string, query string) (interface{}, error) {
 	parser, err := gojq.NewStringQuery(jsonObj)
 	if err != nil {
@@ -128,6 +148,7 @@ func generateFile(templatePath, destPath string) bool {
 		"isTrue":    isTrue,
 		"lower":     strings.ToLower,
 		"upper":     strings.ToUpper,
+		"json":      json,
 		"jsonQuery": jsonQuery,
 		"loop":      loop,
 	}
