@@ -49,14 +49,17 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 			return
 		// get the next log line and echo it out
 		case line := <-t.Lines:
-			if t.Err() != nil {
-				log.Printf("Warning: unable to tail %s: %s", file, t.Err())
-				errCount++
-				if errCount > 30 {
-					log.Fatalf("Logged %d consecutive errors while tailing. Exiting", errCount)
+			if line == nil {
+				// Check if there's an actual error
+				if err := t.Err(); err != nil {
+					log.Printf("Warning: unable to tail %s: %s", file, err)
+					errCount++
+					if errCount > 30 {
+						log.Fatalf("Logged %d consecutive errors while tailing. Exiting", errCount)
+					}
+					time.Sleep(2 * time.Second) // Sleep for 2 seconds before retrying
+					continue
 				}
-				time.Sleep(2 * time.Second) // Sleep for 2 seconds before retrying
-			} else if line == nil {
 				return
 			} else {
 				fmt.Fprintln(dest, line.Text)
