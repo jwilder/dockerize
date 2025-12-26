@@ -8,6 +8,7 @@
 _obj
 _test
 .idea
+vendor
 
 # Architecture specific extensions/prefixes
 *.[568vq]
@@ -28,3 +29,6 @@ _testmain.go
 # Created by .ignore support plugin (hsz.mobi)
 
 dockerize
+
+# Test coverage related files
+coverage.out
