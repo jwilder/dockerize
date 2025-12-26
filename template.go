@@ -72,11 +72,19 @@ func add(arg1, arg2 int) int {
 }
 
 func isTrue(s string) bool {
-	b, err := strconv.ParseBool(strings.ToLower(s))
-	if err == nil {
-		return b
+	lower := strings.ToLower(s)
+	switch lower {
+	case "true", "1", "yes", "on":
+		return true
+	case "false", "0", "no", "off":
+		return false
+	default:
+		b, err := strconv.ParseBool(lower)
+		if err == nil {
+			return b
+		}
+		return false
 	}
-	return false
 }
 
 func jsonQuery(jsonObj string, query string) (interface{}, error) {
