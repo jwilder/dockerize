@@ -52,6 +52,16 @@ jobs:
           asset_name: dockerize-alpine-linux-amd64-${{ steps.tag.outputs.tag }}.tar.gz
           asset_content_type: application/gzip
 
+      - name: Upload Alpine Linux ARM64
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dockerize-alpine-linux-arm64-${{ steps.tag.outputs.tag }}.tar.gz
+          asset_name: dockerize-alpine-linux-arm64-${{ steps.tag.outputs.tag }}.tar.gz
+          asset_content_type: application/gzip
+
       - name: Upload Alpine Linux PPC64LE
         uses: actions/upload-release-asset@v1
         env:
