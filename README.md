@@ -23,17 +23,6 @@ See [A Simple Way To Dockerize Applications](http://jasonwilder.com/blog/2014/10
 Download the latest version in your container:
 - https://github.com/invarnt/dockerize/releases/
 
-
-### Docker Base Image
-
-The `invarnt/dockerize` image is a base image based on `gcr.io/distroless/static`.  `dockerize` is installed in the `$PATH` and can be used directly.
-
-```
-FROM invarnt/dockerize
-...
-ENTRYPOINT dockerize ...
-```
-
 ### Ubuntu Images
 
 ``` Dockerfile
