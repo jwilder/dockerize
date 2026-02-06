@@ -1,8 +1,6 @@
-# Default config should be enough, commenting.
-
-# version: 2
-# updates:
-#   - package-ecosystem: gomod
-#     directory: /
-#     schedule:
-#       interval: "weekly"
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: "daily"
