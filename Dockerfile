@@ -1,7 +1,7 @@
 FROM golang:1.25.6 AS binary
 
-WORKDIR /go/src/github.com/jwilder/dockerize
-COPY *.go go.* /go/src/github.com/jwilder/dockerize/
+WORKDIR /go/src/github.com/invarnt/dockerize
+COPY *.go go.* /go/src/github.com/invarnt/dockerize/
 
 ENV GO111MODULE=on
 RUN go mod tidy

@@ -1,4 +1,4 @@
-module github.com/jwilder/dockerize
+module github.com/invarnt/dockerize
 
 go 1.25.6
 
