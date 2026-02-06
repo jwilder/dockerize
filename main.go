@@ -9,11 +9,11 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
-
-	"golang.org/x/net/context"
 )
 
 const defaultWaitRetryInterval = time.Second
@@ -41,13 +41,10 @@ func (c *Context) Env() map[string]string {
 var (
 	buildVersion string
 	version      bool
-	poll         bool
 	wg           sync.WaitGroup
 
 	templatesFlag     sliceVar
 	templateDirsFlag  sliceVar
-	stdoutTailFlag    sliceVar
-	stderrTailFlag    sliceVar
 	headersFlag       sliceVar
 	delimsFlag        string
 	delims            []string
@@ -58,9 +55,6 @@ var (
 	waitTimeoutFlag   time.Duration
 	dependencyChan    chan struct{}
 	noOverwriteFlag   bool
-
-	ctx    context.Context
-	cancel context.CancelFunc
 )
 
 func (i *hostFlagsVar) String() string {
@@ -140,7 +134,7 @@ func waitForDependencies() {
 						if err != nil {
 							log.Printf("Problem with request: %s. Sleeping %s\n", err.Error(), waitRetryInterval)
 							time.Sleep(waitRetryInterval)
-						} else if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
+						} else if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 							log.Printf("Received %d from %s\n", resp.StatusCode, u.String())
 							// dispose the response body and close it.
 							io.Copy(io.Discard, resp.Body)
@@ -176,7 +170,7 @@ func waitForSocket(scheme, addr string, timeout time.Duration) {
 	go func() {
 		defer wg.Done()
 		for {
-			conn, err := net.DialTimeout(scheme, addr, waitTimeoutFlag)
+			conn, err := net.DialTimeout(scheme, addr, timeout)
 			if err != nil {
 				log.Printf("Problem with dial: %v. Sleeping %s\n", err.Error(), waitRetryInterval)
 				time.Sleep(waitRetryInterval)
@@ -205,27 +199,22 @@ Arguments:
 
 	println(`Examples:
 `)
-	println(`   Generate /etc/nginx/nginx.conf using nginx.tmpl as a template, tail /var/log/nginx/access.log
-   and /var/log/nginx/error.log, waiting for a website to become available on port 8000 and start nginx.`)
+	println(`   Generate /etc/nginx/nginx.conf using nginx.tmpl as a template,
+   waiting for a website to become available on port 8000 and start nginx.`)
 	println(`
    dockerize -template nginx.tmpl:/etc/nginx/nginx.conf \
-             -stdout /var/log/nginx/access.log \
-             -stderr /var/log/nginx/error.log \
              -wait tcp://web:8000 nginx
 	`)
 
-	println(`For more information, see https://github.com/jwilder/dockerize`)
+	println(`For more information, see https://github.com/invarnt/dockerize`)
 }
 
 func main() {
 
 	flag.BoolVar(&version, "version", false, "show version")
-	flag.BoolVar(&poll, "poll", false, "enable polling")
 
 	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times. Does also support directories")
 	flag.BoolVar(&noOverwriteFlag, "no-overwrite", false, "Do not overwrite destination file if it already exists.")
-	flag.Var(&stdoutTailFlag, "stdout", "Tails a file to stdout. Can be passed multiple times")
-	flag.Var(&stderrTailFlag, "stderr", "Tails a file to stderr. Can be passed multiple times")
 	flag.StringVar(&delimsFlag, "delims", "", `template tag delimiters. default "{{":"}}" `)
 	flag.Var(&headersFlag, "wait-http-header", "HTTP headers, colon separated. e.g \"Accept-Encoding: gzip\". Can be passed multiple times")
 	flag.Var(&waitFlag, "wait", "Host (tcp/tcp4/tcp6/http/https/unix/file) to wait for before this container starts. Can be passed multiple times. e.g. tcp://db:5432")
@@ -302,23 +291,15 @@ func main() {
 
 	waitForDependencies()
 
-	// Setup context
-	ctx, cancel = context.WithCancel(context.Background())
-
 	if flag.NArg() > 0 {
-		wg.Add(1)
-		go runCmd(ctx, cancel, flag.Arg(0), flag.Args()[1:]...)
+		cmd := flag.Arg(0)
+		cmdPath, err := exec.LookPath(cmd)
+		if err != nil {
+			log.Fatalf("Error looking up command: `%s` - %s\n", cmd, err)
+		}
+		argv := append([]string{cmd}, flag.Args()[1:]...)
+		if err := syscall.Exec(cmdPath, argv, os.Environ()); err != nil {
+			log.Fatalf("Error executing command: `%s` - %s\n", cmd, err)
+		}
 	}
-
-	for _, out := range stdoutTailFlag {
-		wg.Add(1)
-		go tailFile(ctx, out, poll, os.Stdout)
-	}
-
-	for _, err := range stderrTailFlag {
-		wg.Add(1)
-		go tailFile(ctx, err, poll, os.Stderr)
-	}
-
-	wg.Wait()
 }

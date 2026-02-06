@@ -5,7 +5,6 @@ Utility to simplify running applications in docker containers.
 
 dockerize is a utility to simplify running applications in docker containers.  It allows you to:
 * generate application configuration files at container startup time from templates and container environment variables
-* Tail multiple log files to stdout and/or stderr
 * Wait for other services to be available using TCP, HTTP(S), unix before starting the main process.
 
 The typical use case for dockerize is when you have an application that has one or more configuration files and you would like to control some of the values using environment variables.
@@ -15,11 +14,6 @@ It may require that the database URL be read from a python settings file with a 
 `SQLALCHEMY_DATABASE_URI`.  dockerize allows you to set an environment variable such as
 `DATABASE_URL` and update the python file when the container starts.
 In addition, it can also delay the starting of the python application until the database container is running and listening on the TCP port.
-
-Another use case is when the application logs to specific files on the filesystem and not stdout
-or stderr. This makes it difficult to troubleshoot the container using the `docker logs` command.
-For example, nginx will log to `/var/log/nginx/access.log` and
-`/var/log/nginx/error.log` by default. While you can sometimes work around this, it's tedious to find a solution for every application. dockerize allows you to specify which logs files should be tailed and where they should be sent.
 
 See [A Simple Way To Dockerize Applications](http://jasonwilder.com/blog/2014/10/13/a-simple-way-to-dockerize-applications/)
 
@@ -68,11 +62,10 @@ RUN apk update --no-cache \
 dockerize works by wrapping the call to your application using the `ENTRYPOINT` or `CMD` directives.
 
 This would generate `/etc/nginx/nginx.conf` from the template located at `/etc/nginx/nginx.tmpl` and
-send `/var/log/nginx/access.log` to `STDOUT` and `/var/log/nginx/error.log` to `STDERR` after running
-`nginx`, only after waiting for the `web` host to respond on `tcp 8000`:
+run `nginx` only after waiting for the `web` host to respond on `tcp 8000`:
 
 ``` Dockerfile
-CMD dockerize -template /etc/nginx/nginx.tmpl:/etc/nginx/nginx.conf -stdout /var/log/nginx/access.log -stderr /var/log/nginx/error.log -wait tcp://web:8000 nginx
+CMD dockerize -template /etc/nginx/nginx.tmpl:/etc/nginx/nginx.conf -wait tcp://web:8000 nginx
 ```
 
 ### Command-line Options
@@ -103,20 +96,6 @@ If the destination file already exists, dockerize will overwrite it. The -no-ove
 
 ```
 $ dockerize -no-overwrite -template template1.tmpl:file
-```
-
-You can tail multiple files to `STDOUT` and `STDERR` by passing the options multiple times.
-
-```
-$ dockerize -stdout info.log -stdout perf.log
-
-```
-
-If `inotify` does not work in your container, you can use `-poll` to poll for file changes instead.
-
-```
-$ dockerize -stdout info.log -stdout perf.log -poll
-
 ```
 
 If your file uses `{{` and `}}` as part of it's syntax, you can change the template escape characters using the `-delims`.
@@ -230,3 +209,12 @@ MIT
 [go.string.Replace]: https://golang.org/pkg/strings/#Replace
 [go.url.Parse]: https://golang.org/pkg/net/url/#Parse
 [go.url.URL]: https://golang.org/pkg/net/url/#URL
+
+
+## Maintainer reminder.
+
+To generate a release
+
+```sh
+git tag v0.0.0 && git push origin --tags
+```

@@ -1,19 +1,20 @@
-FROM ubuntu:14.04
-MAINTAINER Jason Wilder mail@jasonwilder.com
+FROM ubuntu:noble
 
-# Install Nginx.
-RUN echo "deb http://ppa.launchpad.net/nginx/stable/ubuntu trusty main" > /etc/apt/sources.list.d/nginx-stable-trusty.list \
-    && echo "deb-src http://ppa.launchpad.net/nginx/stable/ubuntu trusty main" >> /etc/apt/sources.list.d/nginx-stable-trusty.list
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys C300EE8C \
-    && apt-get update && apt-get install -y wget nginx
+SHELL ["/bin/bash", "-Eeuxo", "pipefail", "-c"]
+
+RUN <<EOF
+    apt-get update && apt-get install -y wget nginx
+
+    echo "daemon off;" >> /etc/nginx/nginx.conf
+    ln -sf /dev/stdout /var/log/nginx/access.log
+    ln -sf /dev/stderr /var/log/nginx/error.log
+EOF
 
 RUN wget https://github.com/invarnt/dockerize/releases/download/v0.1.0/dockerize-linux-amd64-v0.1.0.tar.gz \
     && tar -C /usr/local/bin -xvzf dockerize-linux-amd64-v0.1.0.tar.gz
-
-RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 
 ADD default.tmpl /etc/nginx/sites-available/default.tmpl
 
 EXPOSE 80
 
-CMD ["dockerize", "-template", "/etc/nginx/sites-available/default.tmpl:/etc/nginx/sites-available/default", "-stdout", "/var/log/nginx/access.log", "-stderr", "/var/log/nginx/error.log", "nginx"]
+CMD ["dockerize", "-template", "/etc/nginx/sites-available/default.tmpl:/etc/nginx/sites-available/default", "nginx"]
