@@ -112,6 +112,30 @@ func TestIsTrue(t *testing.T) {
 	assert.False(t, isTrue("invalid"))
 }
 
+func TestJSONQuery(t *testing.T) {
+	jsonDoc := `{"services":[{"name":"service1","port":8000},{"name":"service2","port":9000}]}`
+
+	// Test extracting array
+	result, err := jsonQuery(jsonDoc, "services")
+	assert.NoError(t, err)
+	assert.Len(t, result.([]interface{}), 2)
+
+	// Test extracting a value
+	portResult, err := jsonQuery(jsonDoc, "services.[0].port")
+	assert.NoError(t, err)
+	assert.Equal(t, float64(8000), portResult)
+
+	portResult, err = jsonQuery(jsonDoc, ".services.[1].port")
+	assert.NoError(t, err)
+	assert.Equal(t, float64(9000), portResult)
+	
+	// Test error cases
+	_, err = jsonQuery("not-json", ".")
+	assert.Error(t, err)
+	_, err = jsonQuery(jsonDoc, "")
+	assert.Error(t, err)
+}
+
 func TestLoop(t *testing.T) {
 	ch, err := loop(3)
 	assert.NoError(t, err)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/url"
@@ -12,7 +13,7 @@ import (
 	"text/template"
 
 	"github.com/Masterminds/sprig/v3"
-	"github.com/jwilder/gojq"
+	"github.com/itchyny/gojq"
 )
 
 func exists(path string) (bool, error) {
@@ -88,15 +89,37 @@ func isTrue(s string) bool {
 }
 
 func jsonQuery(jsonObj string, query string) (interface{}, error) {
-	parser, err := gojq.NewStringQuery(jsonObj)
+	if !strings.HasPrefix(query, ".") {
+		query = "." + query
+	}
+
+	var obj interface{}
+	if err := json.Unmarshal([]byte(jsonObj), &obj); err != nil {
+		return "", err
+	}
+
+	parsedQuery, err := gojq.Parse(query)
 	if err != nil {
 		return "", err
 	}
-	res, err := parser.Query(query)
-	if err != nil {
-		return "", err
+
+	iter := parsedQuery.Run(obj)
+	var results []interface{}
+	for {
+		v, ok := iter.Next()
+		if !ok {
+			break
+		}
+		if err, ok := v.(error); ok {
+			return "", err
+		}
+		results = append(results, v)
 	}
-	return res, nil
+
+	if len(results) == 1 {
+		return results[0], nil
+	}
+	return results, nil
 }
 
 func loop(args ...int) (<-chan int, error) {

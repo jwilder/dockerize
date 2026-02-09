@@ -157,10 +157,10 @@ With the following JSON in `.Env.SERVICES`
   "services": [
     {
       "name": "service1",
-      "port": 8000,
+      "port": 8000
     },{
       "name": "service2",
-      "port": 9000,
+      "port": 9000
     }
   ]
 }
