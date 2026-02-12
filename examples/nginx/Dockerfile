@@ -7,8 +7,8 @@ RUN echo "deb http://ppa.launchpad.net/nginx/stable/ubuntu trusty main" > /etc/a
 RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys C300EE8C \
     && apt-get update && apt-get install -y wget nginx
 
-RUN wget https://github.com/jwilder/dockerize/releases/download/v0.10.0/dockerize-linux-amd64-v0.10.0.tar.gz \
-    && tar -C /usr/local/bin -xvzf dockerize-linux-amd64-v0.10.0.tar.gz
+RUN wget https://github.com/jwilder/dockerize/releases/download/v0.10.1/dockerize-linux-amd64-v0.10.1.tar.gz \
+    && tar -C /usr/local/bin -xvzf dockerize-linux-amd64-v0.10.1.tar.gz
 
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 
