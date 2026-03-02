@@ -7,7 +7,7 @@ require (
 	github.com/hpcloud/tail v1.0.0
 	github.com/jwilder/gojq v0.0.0-20161018055142-c550732d4a52
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/net v0.50.0
+	golang.org/x/net v0.51.0
 )
 
 require (
