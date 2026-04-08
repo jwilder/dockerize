@@ -1,0 +1,41 @@
+version: "2"
+
+linters:
+  disable:
+    # TODO: Re-enable after fixing pre-existing unchecked error returns
+    - errcheck
+  enable:
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+  settings:
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+        - shadow
+        - nilness
+
+  exclusions:
+    rules:
+      # Existing code uses deprecated x/net/context
+      - text: 'SA1019:.*golang.org/x/net/context'
+        linters: [staticcheck]
+      # Existing code traps SIGKILL
+      - text: 'SA1016'
+        linters: [staticcheck]
+      # Existing code uses punctuation in error strings
+      - text: 'ST1005'
+        linters: [staticcheck]
+      # Existing unused vars
+      - text: 'templateDirsFlag is unused|dependencyChan is unused'
+        linters: [unused]
+
+formatters:
+  enable: []
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

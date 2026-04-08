@@ -1,173 +1,113 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'  # Trigger on version tags like v1.0.0
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  packages: write
 
 jobs:
   release:
+    name: Release
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch all history for git describe to work
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
-          check-latest: true
+          go-version-file: go.mod
 
-      - name: Check Go version used
-        run: go version
+      - name: Calculate next version
+        id: version
+        run: |
+          CURRENT=$(git describe --abbrev=0 --tags 2>/dev/null || echo "v0.0.0")
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
 
-      - name: Get tag name
-        id: tag
-        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          # Strip the 'v' prefix for arithmetic
+          VERSION=${CURRENT#v}
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
 
-      - name: Build release artifacts
-        run: make release
+          case "${{ inputs.bump }}" in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+          NEXT="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "Bumping $CURRENT -> $NEXT (${{ inputs.bump }})"
+
+      - name: Update version references in README.md
+        run: |
+          CURRENT=${{ steps.version.outputs.current }}
+          NEXT=${{ steps.version.outputs.next }}
+          sed -i "s|${CURRENT}|${NEXT}|g" README.md
+
+      - name: Update version references in examples
+        run: |
+          CURRENT=${{ steps.version.outputs.current }}
+          NEXT=${{ steps.version.outputs.next }}
+          find examples -name 'Dockerfile' -exec sed -i "s|${CURRENT}|${NEXT}|g" {} +
+
+      - name: Commit version bump
+        run: |
+          NEXT=${{ steps.version.outputs.next }}
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md examples/
+          git commit -m "chore: bump version to ${NEXT}" || echo "No changes to commit"
+          git push
+
+      - name: Create and push tag
+        run: |
+          NEXT=${{ steps.version.outputs.next }}
+          git tag -a "${NEXT}" -m "Release ${NEXT}"
+          git push origin "${NEXT}"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: latest
+          args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          release_name: Release ${{ steps.tag.outputs.tag }}
-          draft: false
-          prerelease: false
-
-      - name: Upload Alpine Linux AMD64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dockerize-alpine-linux-amd64-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_name: dockerize-alpine-linux-amd64-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Alpine Linux ARM64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dockerize-alpine-linux-arm64-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_name: dockerize-alpine-linux-arm64-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Alpine Linux PPC64LE
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dockerize-alpine-linux-ppc64le-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_name: dockerize-alpine-linux-ppc64le-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Linux AMD64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dockerize-linux-amd64-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_name: dockerize-linux-amd64-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Linux 386
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dockerize-linux-386-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_name: dockerize-linux-386-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Linux ARMEL
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dockerize-linux-armel-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_name: dockerize-linux-armel-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Linux ARMHF
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dockerize-linux-armhf-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_name: dockerize-linux-armhf-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Linux ARM64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dockerize-linux-arm64-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_name: dockerize-linux-arm64-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Linux PPC64LE
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dockerize-linux-ppc64le-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_name: dockerize-linux-ppc64le-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Darwin AMD64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dockerize-darwin-amd64-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_name: dockerize-darwin-amd64-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Darwin ARM64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dockerize-darwin-arm64-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_name: dockerize-darwin-arm64-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Linux S390X
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dockerize-linux-s390x-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_name: dockerize-linux-s390x-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Linux RISCV64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dockerize-linux-riscv64-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_name: dockerize-linux-riscv64-${{ steps.tag.outputs.tag }}.tar.gz
-          asset_content_type: application/gzip
