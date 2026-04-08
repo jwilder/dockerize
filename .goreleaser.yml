@@ -1,0 +1,116 @@
+version: 2
+
+project_name: dockerize
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  # Standard builds
+  - id: default
+    binary: dockerize
+    ldflags:
+      - -X main.buildVersion={{ .Tag }}
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+      - "386"
+      - arm
+      - ppc64le
+      - s390x
+      - riscv64
+    goarm:
+      - "5"
+      - "6"
+    ignore:
+      - goos: darwin
+        goarch: "386"
+      - goos: darwin
+        goarch: arm
+      - goos: darwin
+        goarch: ppc64le
+      - goos: darwin
+        goarch: s390x
+      - goos: darwin
+        goarch: riscv64
+    env:
+      - CGO_ENABLED=0
+
+  # Alpine/static builds (netgo tag)
+  - id: alpine
+    binary: dockerize
+    ldflags:
+      - -X main.buildVersion={{ .Tag }}
+    tags:
+      - netgo
+    flags:
+      - -installsuffix=netgo
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+      - ppc64le
+    env:
+      - CGO_ENABLED=0
+
+archives:
+  - id: default-archive
+    ids:
+      - default
+    name_template: "dockerize-{{ .Os }}-{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}-{{ .Tag }}"
+    formats:
+      - tar.gz
+
+  - id: alpine-archive
+    ids:
+      - alpine
+    name_template: "dockerize-alpine-linux-{{ .Arch }}-{{ .Tag }}"
+    formats:
+      - tar.gz
+
+dockers_v2:
+  - images:
+      - "ghcr.io/jwilder/dockerize"
+    tags:
+      - "{{ .Tag }}"
+      - latest
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    dockerfile: Dockerfile.goreleaser
+    ids:
+      - default
+    labels:
+      "org.opencontainers.image.title": "{{ .ProjectName }}"
+      "org.opencontainers.image.version": "{{ .Tag }}"
+      "org.opencontainers.image.source": "https://github.com/jwilder/dockerize"
+      "org.opencontainers.image.revision": "{{ .FullCommit }}"
+      "org.opencontainers.image.created": "{{ .Date }}"
+      "maintainer": "Jason Wilder <mail@jasonwilder.com>"
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+      - "Merge pull request"
+      - "Merge branch"
+
+release:
+  github:
+    owner: jwilder
+    name: dockerize
+  draft: false
+  prerelease: auto
+  name_template: "{{ .Tag }}"
