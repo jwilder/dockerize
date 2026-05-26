@@ -1,13 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 	"time"
 
 	"github.com/hpcloud/tail"
-	"golang.org/x/net/context"
 )
 
 func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {

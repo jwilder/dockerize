@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -13,7 +14,6 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/net/context"
 )
 
 const defaultWaitRetryInterval = time.Second
