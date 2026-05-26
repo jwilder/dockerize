@@ -45,3 +45,10 @@ func TestExtractExitCode_FromGenericError(t *testing.T) {
 		t.Fatalf("expected fallback exit code 1, got %d", code)
 	}
 }
+
+func TestExtractExitCode_Nil(t *testing.T) {
+	code := extractExitCode(nil)
+	if code != 0 {
+		t.Fatalf("expected exit code 0 for nil error, got %d", code)
+	}
+}
