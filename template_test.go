@@ -55,11 +55,11 @@ func TestTemplateIsTrue(t *testing.T) {
 }
 
 func TestJsonQuery(t *testing.T) {
-	res, err := jsonQuery(`{"name":"test"}`, ".name")
+	res, err := jsonQuery(`{"name":"test"}`, "name")
 	assert.NoError(t, err)
 	assert.Equal(t, "test", res)
 
-	_, err = jsonQuery("invalid", ".foo")
+	_, err = jsonQuery("invalid", "foo")
 	assert.Error(t, err)
 }
 
