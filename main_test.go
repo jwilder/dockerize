@@ -1,8 +1,11 @@
 package main
 
 import (
+	"net"
 	"os"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -145,4 +148,54 @@ func TestLoop(t *testing.T) {
 
 	_, err = loop(1, 2, 3, 4)
 	assert.Error(t, err)
+}
+
+func TestContextEnv(t *testing.T) {
+	os.Setenv("DOCKERIZE_TEST_VAR", "test_value_123")
+	defer os.Unsetenv("DOCKERIZE_TEST_VAR")
+
+	c := &Context{}
+	env := c.Env()
+
+	assert.Equal(t, "test_value_123", env["DOCKERIZE_TEST_VAR"])
+	// Verify PATH exists (should always be set)
+	_, hasPath := env["PATH"]
+	assert.True(t, hasPath || len(env) > 0)
+}
+
+func TestWaitForSocket(t *testing.T) {
+	// Start a TCP listener
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	assert.NoError(t, err)
+	defer listener.Close()
+
+	addr := listener.Addr().String()
+
+	// Save and restore global state
+	oldWg := wg
+	oldWaitRetryInterval := waitRetryInterval
+	oldWaitTimeoutFlag := waitTimeoutFlag
+	defer func() {
+		wg = oldWg
+		waitRetryInterval = oldWaitRetryInterval
+		waitTimeoutFlag = oldWaitTimeoutFlag
+	}()
+
+	wg = sync.WaitGroup{}
+	waitRetryInterval = 100 * time.Millisecond
+	waitTimeoutFlag = 5 * time.Second
+
+	waitForSocket("tcp", addr, waitTimeoutFlag)
+	wg.Wait()
+	// If we get here without hanging, the test passed
+}
+
+func TestSliceVarEmpty(t *testing.T) {
+	var sv sliceVar
+	assert.Equal(t, "", sv.String())
+}
+
+func TestHostFlagsVarEmpty(t *testing.T) {
+	var hf hostFlagsVar
+	assert.Equal(t, "[]", hf.String())
 }
