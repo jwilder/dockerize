@@ -44,7 +44,7 @@ func TestTemplateAdd(t *testing.T) {
 	assert.Equal(t, 5, add(2, 3))
 }
 
-func TestIsTrue(t *testing.T) {
+func TestTemplateIsTrue(t *testing.T) {
 	for _, s := range []string{"true", "1", "yes", "on", "True", "YES"} {
 		assert.True(t, isTrue(s))
 	}
@@ -63,7 +63,7 @@ func TestJsonQuery(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestLoop(t *testing.T) {
+func TestTemplateLoop(t *testing.T) {
 	c, err := loop(3)
 	assert.NoError(t, err)
 	var vals []int
@@ -92,7 +92,7 @@ func TestLoop(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestExists(t *testing.T) {
+func TestTemplateExists(t *testing.T) {
 	ok, err := exists("template.go")
 	assert.NoError(t, err)
 	assert.True(t, ok)
