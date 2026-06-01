@@ -6,13 +6,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestContains(t *testing.T) {
+func TestTemplateContains(t *testing.T) {
 	m := map[string]string{"key": "val"}
 	assert.True(t, contains(m, "key"))
 	assert.False(t, contains(m, "missing"))
 }
 
-func TestDefaultValue(t *testing.T) {
+func TestTemplateDefaultValue(t *testing.T) {
 	val, err := defaultValue("hello")
 	assert.NoError(t, err)
 	assert.Equal(t, "hello", val)
@@ -34,13 +34,13 @@ func TestDefaultValue(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestParseUrl(t *testing.T) {
+func TestTemplateParseUrl(t *testing.T) {
 	u := parseUrl("http://host:8080/path")
 	assert.Equal(t, "host:8080", u.Host)
 	assert.Equal(t, "/path", u.Path)
 }
 
-func TestAdd(t *testing.T) {
+func TestTemplateAdd(t *testing.T) {
 	assert.Equal(t, 5, add(2, 3))
 }
 
