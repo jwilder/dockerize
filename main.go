@@ -45,7 +45,6 @@ var (
 	wg           sync.WaitGroup
 
 	templatesFlag     sliceVar
-	templateDirsFlag  sliceVar
 	stdoutTailFlag    sliceVar
 	stderrTailFlag    sliceVar
 	headersFlag       sliceVar
@@ -56,7 +55,6 @@ var (
 	waitFlag          hostFlagsVar
 	waitRetryInterval time.Duration
 	waitTimeoutFlag   time.Duration
-	dependencyChan    chan struct{}
 	noOverwriteFlag   bool
 
 	ctx    context.Context
