@@ -1,8 +1,18 @@
 package main
 
 import (
+	"context"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"sync"
+	"syscall"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -145,4 +155,150 @@ func TestLoop(t *testing.T) {
 
 	_, err = loop(1, 2, 3, 4)
 	assert.Error(t, err)
+}
+
+func TestWaitForSocketConnectsToTCPServer(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	assert.NoError(t, err)
+	defer ln.Close()
+
+	oldRetry := waitRetryInterval
+	oldTimeout := waitTimeoutFlag
+	wg = sync.WaitGroup{}
+	waitRetryInterval = 10 * time.Millisecond
+	waitTimeoutFlag = 200 * time.Millisecond
+	defer func() {
+		wg = sync.WaitGroup{}
+		waitRetryInterval = oldRetry
+		waitTimeoutFlag = oldTimeout
+	}()
+
+	acceptDone := make(chan struct{})
+	go func() {
+		defer close(acceptDone)
+		conn, err := ln.Accept()
+		if err == nil {
+			conn.Close()
+		}
+	}()
+
+	waitForSocket("tcp", ln.Addr().String(), waitTimeoutFlag)
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for socket connection")
+	}
+
+	select {
+	case <-acceptDone:
+	case <-time.After(time.Second):
+		t.Fatal("server did not accept test connection")
+	}
+}
+
+func TestWaitForDependenciesWaitsForFileAndHTTP(t *testing.T) {
+	tmpDir := t.TempDir()
+	readyFile := filepath.Join(tmpDir, "ready.txt")
+
+	var mu sync.Mutex
+	requestCount := 0
+	var seenHeader string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+		requestCount++
+		seenHeader = r.Header.Get("X-Test")
+		if requestCount == 1 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	httpURL, err := url.Parse(server.URL)
+	assert.NoError(t, err)
+	fileURL := url.URL{Scheme: "file", Path: readyFile}
+
+	oldURLs := urls
+	oldHeaders := headers
+	oldWaitFlag := waitFlag
+	oldRetry := waitRetryInterval
+	oldTimeout := waitTimeoutFlag
+	urls = []url.URL{fileURL, *httpURL}
+	headers = []HttpHeader{{name: "X-Test", value: "value"}}
+	waitFlag = hostFlagsVar{"file://" + readyFile, server.URL}
+	wg = sync.WaitGroup{}
+	waitRetryInterval = 10 * time.Millisecond
+	waitTimeoutFlag = time.Second
+	defer func() {
+		urls = oldURLs
+		headers = oldHeaders
+		waitFlag = oldWaitFlag
+		wg = sync.WaitGroup{}
+		waitRetryInterval = oldRetry
+		waitTimeoutFlag = oldTimeout
+	}()
+
+	go func() {
+		time.Sleep(30 * time.Millisecond)
+		_ = os.WriteFile(readyFile, []byte("ready"), 0o644)
+	}()
+
+	waitForDependencies()
+
+	mu.Lock()
+	defer mu.Unlock()
+	assert.GreaterOrEqual(t, requestCount, 2)
+	assert.Equal(t, "value", seenHeader)
+}
+
+func TestSignalProcessWithTimeoutPassesSignal(t *testing.T) {
+	cmd := exec.Command("sh", "-c", "sleep 10")
+	err := cmd.Start()
+	assert.NoError(t, err)
+
+	signalProcessWithTimeout(cmd, syscall.SIGTERM)
+	assert.NotNil(t, cmd.ProcessState)
+	assert.NotNil(t, cmd.Process)
+	err = cmd.Process.Signal(syscall.Signal(0))
+	assert.Error(t, err)
+}
+
+func TestRunCmdCancelsContextWhenCommandExits(t *testing.T) {
+	ctx, cancelFn := context.WithCancel(context.Background())
+	defer cancelFn()
+
+	wg = sync.WaitGroup{}
+	defer func() {
+		wg = sync.WaitGroup{}
+	}()
+
+	wg.Add(1)
+	go runCmd(ctx, cancelFn, "sh", "-c", "exit 0")
+
+	select {
+	case <-ctx.Done():
+	case <-time.After(2 * time.Second):
+		t.Fatal("expected command completion to cancel context")
+	}
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for runCmd goroutines")
+	}
 }
