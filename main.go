@@ -13,7 +13,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
 )
 
 const defaultWaitRetryInterval = time.Second
@@ -91,69 +90,14 @@ func waitForDependencies() {
 			switch u.Scheme {
 			case "file":
 				wg.Add(1)
-				go func(u url.URL) {
-					defer wg.Done()
-					ticker := time.NewTicker(waitRetryInterval)
-					defer ticker.Stop()
-					var err error
-					if _, err = os.Stat(u.Path); err == nil {
-						log.Printf("File %s had been generated\n", u.String())
-						return
-					}
-					for range ticker.C {
-						if _, err = os.Stat(u.Path); err == nil {
-							log.Printf("File %s had been generated\n", u.String())
-							return
-						} else if os.IsNotExist(err) {
-							continue
-						} else {
-							log.Printf("Problem with check file %s exist: %v. Sleeping %s\n", u.String(), err.Error(), waitRetryInterval)
-
-						}
-					}
-				}(u)
+				go waitForFile(u)
 			case "tcp", "tcp4", "tcp6":
 				waitForSocket(u.Scheme, u.Host, waitTimeoutFlag)
 			case "unix":
 				waitForSocket(u.Scheme, u.Path, waitTimeoutFlag)
 			case "http", "https":
 				wg.Add(1)
-				go func(u url.URL) {
-					client := &http.Client{
-						Timeout: waitTimeoutFlag,
-					}
-
-					defer wg.Done()
-					for {
-						req, err := http.NewRequest("GET", u.String(), nil)
-						if err != nil {
-							log.Printf("Problem with dial: %v. Sleeping %s\n", err.Error(), waitRetryInterval)
-							time.Sleep(waitRetryInterval)
-						}
-						if len(headers) > 0 {
-							for _, header := range headers {
-								req.Header.Add(header.name, header.value)
-							}
-						}
-
-						resp, err := client.Do(req)
-						if err != nil {
-							log.Printf("Problem with request: %s. Sleeping %s\n", err.Error(), waitRetryInterval)
-							time.Sleep(waitRetryInterval)
-						} else if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
-							log.Printf("Received %d from %s\n", resp.StatusCode, u.String())
-							// dispose the response body and close it.
-							io.Copy(io.Discard, resp.Body)
-							resp.Body.Close()
-							return
-						} else {
-							log.Printf("Received %d from %s. Sleeping %s\n", resp.StatusCode, u.String(), waitRetryInterval)
-							io.Copy(io.Discard, resp.Body)
-							resp.Body.Close()
-							time.Sleep(waitRetryInterval)
-						}
-					}
-				}(u)
+				go waitForHTTP(u)
 			default:
 				log.Fatalf("invalid host protocol provided: %s. supported protocols are: tcp, tcp4, tcp6 and http", u.Scheme)
 			}
@@ -169,6 +113,64 @@ func waitForDependencies() {
 		log.Fatalf("Timeout after %s waiting on dependencies to become available: %v", waitTimeoutFlag, waitFlag)
 	}
 
+}
+
+func waitForFile(u url.URL) {
+	defer wg.Done()
+	ticker := time.NewTicker(waitRetryInterval)
+	defer ticker.Stop()
+	var err error
+	if _, err = os.Stat(u.Path); err == nil {
+		log.Printf("File %s had been generated\n", u.String())
+		return
+	}
+	for range ticker.C {
+		if _, err = os.Stat(u.Path); err == nil {
+			log.Printf("File %s had been generated\n", u.String())
+			return
+		} else if os.IsNotExist(err) {
+			continue
+		} else {
+			log.Printf("Problem with check file %s exist: %v. Sleeping %s\n", u.String(), err.Error(), waitRetryInterval)
+		}
+	}
+}
+
+func waitForHTTP(u url.URL) {
+	defer wg.Done()
+	client := &http.Client{
+		Timeout: waitTimeoutFlag,
+	}
+
+	for {
+		req, err := http.NewRequest("GET", u.String(), nil)
+		if err != nil {
+			log.Printf("Problem with dial: %v. Sleeping %s\n", err.Error(), waitRetryInterval)
+			time.Sleep(waitRetryInterval)
+			continue
+		}
+		if len(headers) > 0 {
+			for _, header := range headers {
+				req.Header.Add(header.name, header.value)
+			}
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Printf("Problem with request: %s. Sleeping %s\n", err.Error(), waitRetryInterval)
+			time.Sleep(waitRetryInterval)
+		} else if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			log.Printf("Received %d from %s\n", resp.StatusCode, u.String())
+			io.Copy(io.Discard, resp.Body)
+			resp.Body.Close()
+			return
+		} else {
+			log.Printf("Received %d from %s. Sleeping %s\n", resp.StatusCode, u.String(), waitRetryInterval)
+			io.Copy(io.Discard, resp.Body)
+			resp.Body.Close()
+			time.Sleep(waitRetryInterval)
+		}
+	}
 }
 
 func waitForSocket(scheme, addr string, timeout time.Duration) {

@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
 )
 
 func runCmd(ctx context.Context, cancel context.CancelFunc, cmd string, args ...string) {
