@@ -45,7 +45,6 @@ var (
 	wg           sync.WaitGroup
 
 	templatesFlag     sliceVar
-	templateDirsFlag  sliceVar
 	stdoutTailFlag    sliceVar
 	stderrTailFlag    sliceVar
 	headersFlag       sliceVar
