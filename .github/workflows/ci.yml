@@ -75,10 +75,25 @@ jobs:
       - name: Run govulncheck
         run: govulncheck ./...
 
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Run e2e tests
+        run: go test -v -timeout 120s ./e2e/
+
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint, test, vulncheck]
+    needs: [lint, test, vulncheck, e2e]
     strategy:
       matrix:
         goos: [linux, darwin]
