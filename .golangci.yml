@@ -29,9 +29,7 @@ linters:
       # Existing code uses punctuation in error strings
       - text: 'ST1005'
         linters: [staticcheck]
-      # Existing unused vars
-      - text: 'templateDirsFlag is unused|dependencyChan is unused'
-        linters: [unused]
+
 
 formatters:
   enable: []
