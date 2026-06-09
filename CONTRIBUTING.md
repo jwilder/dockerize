@@ -4,14 +4,14 @@ Thanks for your interest in contributing to `dockerize`.
 
 ## Project setup
 
-This project is written in Go and uses standard Go tooling.
+This project is written in Go and produces the `dockerize` binary.
 
 1. Install a supported Go toolchain.
 2. Clone the repository.
-3. From the repository root, verify the project builds:
+3. From the repository root, build the project:
 
 ```sh
-go build ./...
+go build
 ```
 
 If you use the provided `Makefile`, the available development targets include:
@@ -34,19 +34,13 @@ go install -ldflags "$(LDFLAGS)"
 Run the full test suite from the repository root with:
 
 ```sh
-go test ./...
+go test -v -race ./...
 ```
 
-For parity with the `Makefile` test target, you can also run:
+This is the same command used by:
 
 ```sh
 make test
-```
-
-This runs:
-
-```sh
-go test -v -race ./...
 ```
 
 Before opening a pull request, please make sure your changes build cleanly and the relevant tests pass.
