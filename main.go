@@ -55,7 +55,6 @@ var (
 	waitFlag          hostFlagsVar
 	waitRetryInterval time.Duration
 	waitTimeoutFlag   time.Duration
-	dependencyChan    chan struct{}
 	noOverwriteFlag   bool
 
 	ctx    context.Context
