@@ -30,7 +30,7 @@ type HttpHeader struct {
 }
 
 func (c *Context) Env() map[string]string {
-	env := make(map[string]string)
+	env := make(map[string]string, len(os.Environ()))
 	for _, i := range os.Environ() {
 		sep := strings.Index(i, "=")
 		env[i[0:sep]] = i[sep+1:]
