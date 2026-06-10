@@ -127,7 +127,7 @@ func waitForDependencies() {
 					for {
 						req, err := http.NewRequest("GET", u.String(), nil)
 						if err != nil {
-							log.Printf("Problem with dial to %s: %v. Sleeping %s\n", u.String(), err.Error(), waitRetryInterval)
+							log.Printf("Problem creating request for %s: %v. Sleeping %s\n", u.String(), err.Error(), waitRetryInterval)
 							time.Sleep(waitRetryInterval)
 						}
 						if len(headers) > 0 {
@@ -178,7 +178,7 @@ func waitForSocket(scheme, addr string, timeout time.Duration) {
 		for {
 			conn, err := dialTimeout(scheme, addr, timeout)
 			if err != nil {
-				log.Printf("Problem with dial to %s://%s: %v. Sleeping %s\n", scheme, addr, err.Error(), waitRetryInterval)
+				log.Printf("Problem with dial %s://%s: %v. Sleeping %s\n", scheme, addr, err.Error(), waitRetryInterval)
 				time.Sleep(waitRetryInterval)
 			}
 			if conn != nil {
