@@ -63,6 +63,28 @@ func TestContains(t *testing.T) {
 	assert.False(t, contains(testMap, "key3"))
 }
 
+func TestContextEnvReturnsCurrentEnvironment(t *testing.T) {
+	ctx := &Context{}
+	env := ctx.Env()
+	expected := make(map[string]string)
+
+	for _, entry := range os.Environ() {
+		sep := -1
+		for i := 0; i < len(entry); i++ {
+			if entry[i] == '=' {
+				sep = i
+				break
+			}
+		}
+		if sep == -1 {
+			t.Fatalf("environment entry missing '=': %q", entry)
+		}
+		expected[entry[:sep]] = entry[sep+1:]
+	}
+
+	assert.Equal(t, expected, env)
+}
+
 func TestDefaultValue(t *testing.T) {
 	result, err := defaultValue("test-value")
 	assert.NoError(t, err)
