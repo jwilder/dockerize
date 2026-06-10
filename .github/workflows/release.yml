@@ -28,6 +28,8 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+          # Keep persisted credentials because later steps push a commit and tag.
+          persist-credentials: true
 
       - name: Set up Go
         uses: actions/setup-go@v6
