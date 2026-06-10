@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -136,6 +137,54 @@ func TestGenerateFileDefaultDoesNotPanicOnNonStringValue(t *testing.T) {
 	}()
 
 	generateFile(templatePath, destPath)
+}
+
+func TestExistsErrorIncludesFilePath(t *testing.T) {
+	missingPath := filepath.Join("/proc", "1", "fd", "does-not-exist", "child")
+
+	_, err := exists(missingPath)
+	if err == nil {
+		t.Fatal("exists returned nil error, want error")
+	}
+	if !strings.Contains(err.Error(), missingPath) {
+		t.Fatalf("exists error %q does not include path %q", err.Error(), missingPath)
+	}
+}
+
+func TestJSONQueryErrorsIncludeContext(t *testing.T) {
+	tests := []struct {
+		name      string
+		jsonObj   string
+		query     string
+		wantParts []string
+	}{
+		{
+			name:      "invalid json includes json object",
+			jsonObj:   `{`,
+			query:     "name",
+			wantParts: []string{"{"},
+		},
+		{
+			name:      "invalid query includes query and json object",
+			jsonObj:   `{"name":"dockerize"}`,
+			query:     "[",
+			wantParts: []string{"[", `{"name":"dockerize"}`},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := jsonQuery(tt.jsonObj, tt.query)
+			if err == nil {
+				t.Fatal("jsonQuery returned nil error, want error")
+			}
+			for _, wantPart := range tt.wantParts {
+				if !strings.Contains(err.Error(), wantPart) {
+					t.Fatalf("jsonQuery error %q does not include context %q", err.Error(), wantPart)
+				}
+			}
+		})
+	}
 }
 
 func TestGenerateDirRendersAllTemplates(t *testing.T) {
