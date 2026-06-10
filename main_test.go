@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -228,6 +230,11 @@ func TestWaitForSocketConnectsToTCPServer(t *testing.T) {
 	assert.NoError(t, err)
 	defer ln.Close()
 
+	var logs bytes.Buffer
+	oldLogWriter := log.Writer()
+	log.SetOutput(&logs)
+	defer log.SetOutput(oldLogWriter)
+
 	oldRetry := waitRetryInterval
 	oldTimeout := waitTimeoutFlag
 	oldDialTimeout := dialTimeout
@@ -269,11 +276,18 @@ func TestWaitForSocketConnectsToTCPServer(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("server did not accept test connection")
 	}
+
+	assert.Contains(t, logs.String(), "Connected to tcp://"+ln.Addr().String())
 }
 
 func TestWaitForDependenciesWaitsForFileAndHTTP(t *testing.T) {
 	tmpDir := t.TempDir()
 	readyFile := filepath.Join(tmpDir, "ready.txt")
+
+	var logs bytes.Buffer
+	oldLogWriter := log.Writer()
+	log.SetOutput(&logs)
+	defer log.SetOutput(oldLogWriter)
 
 	var mu sync.Mutex
 	requestCount := 0
@@ -326,6 +340,7 @@ func TestWaitForDependenciesWaitsForFileAndHTTP(t *testing.T) {
 	defer mu.Unlock()
 	assert.GreaterOrEqual(t, requestCount, 2)
 	assert.Equal(t, "value", seenHeader)
+	assert.Contains(t, logs.String(), "Received 503 from "+server.URL)
 }
 
 func TestSignalProcessWithTimeoutPassesSignal(t *testing.T) {
