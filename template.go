@@ -24,7 +24,7 @@ func exists(path string) (bool, error) {
 	if errors.Is(err, os.ErrNotExist) {
 		return false, nil
 	}
-	return false, err
+	return false, fmt.Errorf("unable to stat %s: %w", path, err)
 }
 
 func contains(item map[string]string, key string) bool {
@@ -93,11 +93,11 @@ func isTrue(s string) bool {
 func jsonQuery(jsonObj string, query string) (interface{}, error) {
 	parser, err := gojq.NewStringQuery(jsonObj)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("unable to parse JSON object %s: %w", jsonObj, err)
 	}
 	res, err := parser.Query(query)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("unable to query JSON object %s with %s: %w", jsonObj, query, err)
 	}
 	return res, nil
 }
