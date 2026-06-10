@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -199,6 +203,43 @@ func TestWaitForSocketUsesPassedTimeoutForDial(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("dial timeout was not recorded")
 	}
+}
+
+func TestWaitForSocketLogsDialTarget(t *testing.T) {
+	oldDialTimeout := dialTimeout
+	oldRetry := waitRetryInterval
+	oldOutput := log.Writer()
+	wg = sync.WaitGroup{}
+	waitRetryInterval = 10 * time.Millisecond
+	defer func() {
+		dialTimeout = oldDialTimeout
+		waitRetryInterval = oldRetry
+		log.SetOutput(oldOutput)
+		wg = sync.WaitGroup{}
+	}()
+
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+
+	dialErr := errors.New("dial failed")
+	dialDone := make(chan struct{}, 1)
+	dialTimeout = func(network, address string, timeout time.Duration) (net.Conn, error) {
+		select {
+		case dialDone <- struct{}{}:
+		default:
+		}
+		return nil, dialErr
+	}
+
+	waitForSocket("tcp", "example:1234", 75*time.Millisecond)
+
+	select {
+	case <-dialDone:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for dial attempt")
+	}
+
+	assert.Contains(t, strings.TrimSpace(buf.String()), "Problem with dial tcp://example:1234: dial failed")
 }
 
 func TestWaitForSocketConnectsToTCPServer(t *testing.T) {
