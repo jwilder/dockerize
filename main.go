@@ -56,6 +56,7 @@ var (
 	waitRetryInterval time.Duration
 	waitTimeoutFlag   time.Duration
 	noOverwriteFlag   bool
+	dialTimeout       = net.DialTimeout
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -174,7 +175,7 @@ func waitForSocket(scheme, addr string, timeout time.Duration) {
 	go func() {
 		defer wg.Done()
 		for {
-			conn, err := net.DialTimeout(scheme, addr, waitTimeoutFlag)
+			conn, err := dialTimeout(scheme, addr, waitTimeoutFlag)
 			if err != nil {
 				log.Printf("Problem with dial: %v. Sleeping %s\n", err.Error(), waitRetryInterval)
 				time.Sleep(waitRetryInterval)

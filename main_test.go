@@ -157,6 +157,50 @@ func TestLoop(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestWaitForSocketUsesPassedTimeoutForDial(t *testing.T) {
+	oldDialTimeout := dialTimeout
+	oldTimeout := waitTimeoutFlag
+	oldRetry := waitRetryInterval
+	wg = sync.WaitGroup{}
+	waitTimeoutFlag = 200 * time.Millisecond
+	waitRetryInterval = 10 * time.Millisecond
+	defer func() {
+		dialTimeout = oldDialTimeout
+		waitTimeoutFlag = oldTimeout
+		waitRetryInterval = oldRetry
+		wg = sync.WaitGroup{}
+	}()
+
+	timeoutArg := make(chan time.Duration, 1)
+	dialTimeout = func(network, address string, timeout time.Duration) (net.Conn, error) {
+		timeoutArg <- timeout
+		client, server := net.Pipe()
+		go server.Close()
+		return client, nil
+	}
+
+	waitForSocket("tcp", "example:1234", 75*time.Millisecond)
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for socket connection")
+	}
+
+	select {
+	case got := <-timeoutArg:
+		assert.Equal(t, 75*time.Millisecond, got)
+	case <-time.After(time.Second):
+		t.Fatal("dial timeout was not recorded")
+	}
+}
+
 func TestWaitForSocketConnectsToTCPServer(t *testing.T) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	assert.NoError(t, err)
@@ -164,6 +208,7 @@ func TestWaitForSocketConnectsToTCPServer(t *testing.T) {
 
 	oldRetry := waitRetryInterval
 	oldTimeout := waitTimeoutFlag
+	oldDialTimeout := dialTimeout
 	wg = sync.WaitGroup{}
 	waitRetryInterval = 10 * time.Millisecond
 	waitTimeoutFlag = 200 * time.Millisecond
@@ -171,6 +216,7 @@ func TestWaitForSocketConnectsToTCPServer(t *testing.T) {
 		wg = sync.WaitGroup{}
 		waitRetryInterval = oldRetry
 		waitTimeoutFlag = oldTimeout
+		dialTimeout = oldDialTimeout
 	}()
 
 	acceptDone := make(chan struct{})
