@@ -62,7 +62,14 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 				}
 				return
 			} else {
-				fmt.Fprintln(dest, line.Text)
+				if _, err := fmt.Fprintln(dest, line.Text); err != nil {
+					log.Printf("Warning: unable to write to dest: %s", err)
+					errCount++
+					if errCount > 30 {
+						log.Fatalf("Logged %d consecutive errors while tailing. Exiting", errCount)
+					}
+					continue
+				}
 				errCount = 0 // Zero the error count
 			}
 		}
