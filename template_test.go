@@ -187,6 +187,28 @@ func TestJSONQueryErrorsIncludeContext(t *testing.T) {
 	}
 }
 
+func TestLoopChannelConsumesAllProducedValuesInOrder(t *testing.T) {
+	ch, err := loop(1, 10, 3)
+	if err != nil {
+		t.Fatalf("loop returned error: %v", err)
+	}
+
+	var got []int
+	for v := range ch {
+		got = append(got, v)
+	}
+
+	want := []int{1, 4, 7}
+	if len(got) != len(want) {
+		t.Fatalf("consumed %d values, want %d: got %v", len(got), len(want), got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("value %d mismatch: got %d want %d (full sequence got %v want %v)", i, got[i], want[i], got, want)
+		}
+	}
+}
+
 func TestGenerateDirRendersAllTemplates(t *testing.T) {
 	oldDelims := delims
 	oldNoOverwrite := noOverwriteFlag
