@@ -127,7 +127,7 @@ func waitForDependencies() {
 					for {
 						req, err := http.NewRequest("GET", u.String(), nil)
 						if err != nil {
-							log.Printf("Problem with dial: %v. Sleeping %s\n", err.Error(), waitRetryInterval)
+							log.Printf("Problem with dial to %s: %v. Sleeping %s\n", u.String(), err.Error(), waitRetryInterval)
 							time.Sleep(waitRetryInterval)
 						}
 						if len(headers) > 0 {
@@ -138,7 +138,7 @@ func waitForDependencies() {
 
 						resp, err := client.Do(req)
 						if err != nil {
-							log.Printf("Problem with request: %s. Sleeping %s\n", err.Error(), waitRetryInterval)
+							log.Printf("Problem with request to %s: %s. Sleeping %s\n", u.String(), err.Error(), waitRetryInterval)
 							time.Sleep(waitRetryInterval)
 						} else if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
 							log.Printf("Received %d from %s\n", resp.StatusCode, u.String())
@@ -178,7 +178,7 @@ func waitForSocket(scheme, addr string, timeout time.Duration) {
 		for {
 			conn, err := dialTimeout(scheme, addr, timeout)
 			if err != nil {
-				log.Printf("Problem with dial: %v. Sleeping %s\n", err.Error(), waitRetryInterval)
+				log.Printf("Problem with dial to %s://%s: %v. Sleeping %s\n", scheme, addr, err.Error(), waitRetryInterval)
 				time.Sleep(waitRetryInterval)
 			}
 			if conn != nil {
