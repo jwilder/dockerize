@@ -175,7 +175,7 @@ func waitForSocket(scheme, addr string, timeout time.Duration) {
 	go func() {
 		defer wg.Done()
 		for {
-			conn, err := dialTimeout(scheme, addr, waitTimeoutFlag)
+			conn, err := dialTimeout(scheme, addr, timeout)
 			if err != nil {
 				log.Printf("Problem with dial: %v. Sleeping %s\n", err.Error(), waitRetryInterval)
 				time.Sleep(waitRetryInterval)
