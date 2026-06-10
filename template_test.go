@@ -110,6 +110,34 @@ func TestGenerateFileNoOverwrite(t *testing.T) {
 	}
 }
 
+func TestGenerateFileDefaultDoesNotPanicOnNonStringValue(t *testing.T) {
+	oldDelims := delims
+	oldNoOverwrite := noOverwriteFlag
+	defer func() {
+		delims = oldDelims
+		noOverwriteFlag = oldNoOverwrite
+	}()
+
+	delims = nil
+	noOverwriteFlag = false
+
+	tempDir := t.TempDir()
+	templatePath := filepath.Join(tempDir, "default-non-string.tmpl")
+	destPath := filepath.Join(tempDir, "default-non-string.out")
+
+	if err := os.WriteFile(templatePath, []byte(`{{ default (add 1 2) "fallback" }}`), 0o644); err != nil {
+		t.Fatalf("write template: %v", err)
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("generateFile panicked: %v", r)
+		}
+	}()
+
+	generateFile(templatePath, destPath)
+}
+
 func TestGenerateDirRendersAllTemplates(t *testing.T) {
 	oldDelims := delims
 	oldNoOverwrite := noOverwriteFlag
