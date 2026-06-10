@@ -151,7 +151,7 @@ func generateFile(templatePath, destPath string) bool {
 	}
 	tmpl, err := tmpl.ParseFiles(templatePath)
 	if err != nil {
-		log.Fatalf("unable to parse template: %s", err)
+		log.Fatalf("unable to parse template %s, error: %s", templatePath, err)
 	}
 
 	// Don't overwrite destination file if it exists and no-overwrite flag passed
@@ -163,14 +163,14 @@ func generateFile(templatePath, destPath string) bool {
 	if destPath != "" {
 		dest, err = os.Create(destPath)
 		if err != nil {
-			log.Fatalf("unable to create %s", err)
+			log.Fatalf("unable to create %s, error: %s", destPath, err)
 		}
 		defer dest.Close()
 	}
 
 	err = tmpl.ExecuteTemplate(dest, filepath.Base(templatePath), &Context{})
 	if err != nil {
-		log.Fatalf("template error: %s\n", err)
+		log.Fatalf("template error %s, error: %s\n", templatePath, err)
 	}
 
 	if fi, err := os.Stat(destPath); err == nil {
