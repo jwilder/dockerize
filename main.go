@@ -268,11 +268,11 @@ func main() {
 		if strings.Contains(h, ":") {
 			parts := strings.Split(h, ":")
 			if len(parts) != 2 {
-				log.Fatalf(errMsg, headersFlag)
+				log.Fatalf(errMsg, h)
 			}
 			headers = append(headers, HttpHeader{name: strings.TrimSpace(parts[0]), value: strings.TrimSpace(parts[1])})
 		} else {
-			log.Fatalf(errMsg, headersFlag)
+			log.Fatalf(errMsg, h)
 		}
 
 	}
