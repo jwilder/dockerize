@@ -178,10 +178,10 @@ func generateFile(templatePath, destPath string) bool {
 
 	if fi, err := os.Stat(destPath); err == nil {
 		if err := dest.Chmod(fi.Mode()); err != nil {
-			log.Fatalf("unable to chmod temp file: %s\n", err)
+			log.Fatalf("unable to chmod temp file %s: %s\n", destPath, err)
 		}
 		if err := dest.Chown(int(fi.Sys().(*syscall.Stat_t).Uid), int(fi.Sys().(*syscall.Stat_t).Gid)); err != nil {
-			log.Fatalf("unable to chown temp file: %s\n", err)
+			log.Fatalf("unable to chown temp file %s: %s\n", destPath, err)
 		}
 	}
 
