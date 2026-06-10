@@ -116,7 +116,7 @@ func loop(args ...int) (<-chan int, error) {
 			", but got %d", len(args))
 	}
 
-	c := make(chan int)
+	c := make(chan int, 16)
 	go func() {
 		for i := start; i < stop; i += step {
 			c <- i
