@@ -40,7 +40,9 @@ func defaultValue(args ...interface{}) (string, error) {
 
 	if len(args) > 0 {
 		if args[0] != nil {
-			return args[0].(string), nil
+			if s, ok := args[0].(string); ok {
+				return s, nil
+			}
 		}
 	}
 
