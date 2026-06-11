@@ -94,7 +94,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Run e2e tests
-        run: go test -v -timeout 120s ./e2e/
+        run: go test -v -race -timeout 120s ./e2e/
 
   build:
     name: Build
