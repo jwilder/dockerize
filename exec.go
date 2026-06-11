@@ -29,6 +29,7 @@ func runCmd(ctx context.Context, cancel context.CancelFunc, cmd string, args ...
 	// Setup signaling
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
+	waitDone := make(chan struct{})
 
 	wg.Add(1)
 	go func() {
@@ -37,7 +38,7 @@ func runCmd(ctx context.Context, cancel context.CancelFunc, cmd string, args ...
 		select {
 		case sig := <-sigs:
 			log.Printf("Received signal: %s\n", sig)
-			signalProcessWithTimeout(process, sig)
+			signalProcessWithTimeout(process, sig, waitDone)
 			cancel()
 		case <-ctx.Done():
 			// exit when context is done
@@ -45,6 +46,7 @@ func runCmd(ctx context.Context, cancel context.CancelFunc, cmd string, args ...
 	}()
 
 	err = process.Wait()
+	close(waitDone)
 	cancel()
 
 	if err == nil {
@@ -65,16 +67,18 @@ func runCmd(ctx context.Context, cancel context.CancelFunc, cmd string, args ...
 
 }
 
-func signalProcessWithTimeout(process *exec.Cmd, sig os.Signal) {
-	done := make(chan struct{})
-
-	go func() {
-		process.Process.Signal(sig) // pretty sure this doesn't do anything. It seems like the signal is automatically sent to the command?
-		process.Wait()
-		close(done)
-	}()
+func signalProcessWithTimeout(process *exec.Cmd, sig os.Signal, waitDone ...<-chan struct{}) {
+	process.Process.Signal(sig) // pretty sure this doesn't do anything. It seems like the signal is automatically sent to the command?
+	if len(waitDone) == 0 {
+		done := make(chan struct{})
+		go func() {
+			process.Wait()
+			close(done)
+		}()
+		waitDone = []<-chan struct{}{done}
+	}
 	select {
-	case <-done:
+	case <-waitDone[0]:
 		return
 	case <-time.After(10 * time.Second):
 		log.Println("Killing command due to timeout.")
