@@ -391,8 +391,11 @@ func TestWaitMultiple(t *testing.T) {
 }
 
 func TestWaitHTTPHeader(t *testing.T) {
+	receivedHeader := make(chan string, 1)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("X-Custom-Auth") == "secret123" {
+		headerValue := r.Header.Get("X-Custom-Auth")
+		receivedHeader <- headerValue
+		if headerValue == "secret123" {
 			w.WriteHeader(200)
 		} else {
 			w.WriteHeader(401)
@@ -408,6 +411,56 @@ func TestWaitHTTPHeader(t *testing.T) {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("dockerize failed: %v\n%s", err, out)
+	}
+
+	select {
+	case got := <-receivedHeader:
+		if got != "secret123" {
+			t.Fatalf("expected header value %q, got %q", "secret123", got)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for HTTP request")
+	}
+
+	if !strings.Contains(string(out), "authed") {
+		t.Fatalf("expected 'authed' in output, got: %s", string(out))
+	}
+}
+
+func TestWaitHTTPHeaderValueWithAdditionalColons(t *testing.T) {
+	const expectedValue = "Bearer part1:part2:part3"
+	receivedHeader := make(chan string, 1)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		headerValue := r.Header.Get("X-Custom-Auth")
+		select {
+		case receivedHeader <- headerValue:
+		default:
+		}
+		if headerValue == expectedValue {
+			w.WriteHeader(200)
+		} else {
+			w.WriteHeader(401)
+		}
+	}))
+	defer srv.Close()
+
+	cmd := exec.Command(dockerizeBin,
+		"-wait", srv.URL,
+		"-wait-http-header", "X-Custom-Auth: "+expectedValue,
+		"-timeout", "5s",
+		"echo", "authed")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("dockerize failed: %v\n%s", err, out)
+	}
+
+	select {
+	case got := <-receivedHeader:
+		if got != expectedValue {
+			t.Fatalf("expected header value %q, got %q", expectedValue, got)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for HTTP request")
 	}
 
 	if !strings.Contains(string(out), "authed") {
