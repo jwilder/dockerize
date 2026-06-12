@@ -181,6 +181,126 @@ func TestLoop(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestParseDelimiters(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    []string
+		wantErr string
+	}{
+		{name: "empty", input: "", want: nil},
+		{name: "valid", input: "{{:}}", want: []string{"{{", "}}"}},
+		{name: "valid with spaces", input: "<% : %>", want: []string{"<% ", " %>"}},
+		{name: "missing separator", input: "{{}}", wantErr: "bad delimiters argument: {{}}. expected \"left:right\""},
+		{name: "too many separators", input: "a:b:c", wantErr: "bad delimiters argument: a:b:c. expected \"left:right\""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseDelimiters(tt.input)
+			if tt.wantErr != "" {
+				assert.EqualError(t, err, tt.wantErr)
+				assert.Nil(t, got)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestParseWaitURLs(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   hostFlagsVar
+		want    []url.URL
+		wantErr string
+	}{
+		{name: "empty", input: nil, want: []url.URL{}},
+		{
+			name:  "multiple urls",
+			input: hostFlagsVar{"tcp://db:5432", "http://web:8080/health", "file:///tmp/ready"},
+			want: []url.URL{
+				{Scheme: "tcp", Host: "db:5432"},
+				{Scheme: "http", Host: "web:8080", Path: "/health"},
+				{Scheme: "file", Path: "/tmp/ready"},
+			},
+		},
+		{name: "invalid escape", input: hostFlagsVar{"http://example.com/%zz"}, wantErr: "bad hostname provided: http://example.com/%zz. parse \"http://example.com/%zz\": invalid URL escape \"%zz\""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseWaitURLs(tt.input)
+			if tt.wantErr != "" {
+				assert.EqualError(t, err, tt.wantErr)
+				assert.Nil(t, got)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestParseHeaders(t *testing.T) {
+	tests := []struct {
+		name    string
+		values  []string
+		waits   hostFlagsVar
+		want    []HttpHeader
+		wantErr string
+	}{
+		{name: "empty", values: nil, waits: hostFlagsVar{"http://example.com"}, want: []HttpHeader{}},
+		{
+			name:   "valid headers",
+			values: []string{"Accept-Encoding: gzip", "X-Test: value:with:colon", "Authorization:Bearer token"},
+			waits:  hostFlagsVar{"http://example.com"},
+			want: []HttpHeader{
+				{name: "Accept-Encoding", value: "gzip"},
+				{name: "X-Test", value: "value:with:colon"},
+				{name: "Authorization", value: "Bearer token"},
+			},
+		},
+		{name: "header without wait", values: []string{"Accept: gzip"}, wantErr: "-wait-http-header \"Accept: gzip\" provided with no -wait option"},
+		{name: "missing colon", values: []string{"Accept gzip"}, waits: hostFlagsVar{"http://example.com"}, wantErr: "bad HTTP Headers argument: Accept gzip. expected \"headerName: headerValue\""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseHeaders(tt.values, tt.waits)
+			if tt.wantErr != "" {
+				assert.EqualError(t, err, tt.wantErr)
+				assert.Nil(t, got)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestProcessTemplatesFileAndDirectoryArguments(t *testing.T) {
+	fileTemplateDir := t.TempDir()
+	filePath := filepath.Join(fileTemplateDir, "source.tmpl")
+	fileDest := filepath.Join(fileTemplateDir, "out.txt")
+	assert.NoError(t, os.WriteFile(filePath, []byte("hello"), 0o644))
+
+	dirPath := t.TempDir()
+	assert.NoError(t, os.WriteFile(filepath.Join(dirPath, "child.tmpl"), []byte("hello"), 0o644))
+	dirDest := t.TempDir()
+
+	processTemplates([]string{filePath + ":" + fileDest, dirPath + ":" + dirDest})
+
+	_, err := os.Stat(fileDest)
+	assert.NoError(t, err)
+	_, err = os.Stat(filepath.Join(dirDest, "child.tmpl"))
+	assert.NoError(t, err)
+}
+
 func TestWaitForSocketUsesPassedTimeoutForDial(t *testing.T) {
 	oldDialTimeout := dialTimeout
 	oldTimeout := waitTimeoutFlag
