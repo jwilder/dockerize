@@ -30,6 +30,23 @@ type HttpHeader struct {
 	value string
 }
 
+type Config struct {
+	version          bool
+	poll             bool
+	templates        []string
+	stdoutTails      []string
+	stderrTails      []string
+	headersFlag      []string
+	delims           []string
+	headers          []HttpHeader
+	urls             []url.URL
+	waits            []string
+	waitTimeout      time.Duration
+	waitRetryInterval time.Duration
+	noOverwrite      bool
+	args             []string
+}
+
 func (c *Context) Env() map[string]string {
 	env := make(map[string]string, len(os.Environ()))
 	for _, i := range os.Environ() {
@@ -217,11 +234,9 @@ Arguments:
 	println(`For more information, see https://github.com/jwilder/dockerize`)
 }
 
-func main() {
-
+func registerFlags() {
 	flag.BoolVar(&version, "version", false, "show version")
 	flag.BoolVar(&poll, "poll", false, "enable polling")
-
 	flag.Var(&templatesFlag, "template", "Template (/template:/dest). Can be passed multiple times. Does also support directories")
 	flag.BoolVar(&noOverwriteFlag, "no-overwrite", false, "Do not overwrite destination file if it already exists.")
 	flag.Var(&stdoutTailFlag, "stdout", "Tails a file to stdout. Can be passed multiple times")
@@ -231,11 +246,98 @@ func main() {
 	flag.Var(&waitFlag, "wait", "Host (tcp/tcp4/tcp6/http/https/unix/file) to wait for before this container starts. Can be passed multiple times. e.g. tcp://db:5432")
 	flag.DurationVar(&waitTimeoutFlag, "timeout", 10*time.Second, "Host wait timeout")
 	flag.DurationVar(&waitRetryInterval, "wait-retry-interval", defaultWaitRetryInterval, "Duration to wait before retrying")
-
 	flag.Usage = usage
+}
+
+func parseDelimiters(value string) ([]string, error) {
+	if value == "" {
+		return nil, nil
+	}
+
+	delims := strings.Split(value, ":")
+	if len(delims) != 2 {
+		return nil, fmt.Errorf("bad delimiters argument: %s. expected \"left:right\"", value)
+	}
+	return delims, nil
+}
+
+func parseWaitURLs(hosts hostFlagsVar) ([]url.URL, error) {
+	urls := make([]url.URL, 0, len(hosts))
+	for _, host := range hosts {
+		u, err := url.Parse(host)
+		if err != nil {
+			return nil, fmt.Errorf("bad hostname provided: %s. %s", host, err.Error())
+		}
+		urls = append(urls, *u)
+	}
+	return urls, nil
+}
+
+func parseHeaders(values []string, waits hostFlagsVar) ([]HttpHeader, error) {
+	headers := make([]HttpHeader, 0, len(values))
+	for _, h := range values {
+		if len(waits) == 0 {
+			return nil, fmt.Errorf("-wait-http-header \"%s\" provided with no -wait option", h)
+		}
+
+		const errMsg = "bad HTTP Headers argument: %s. expected \"headerName: headerValue\""
+		if strings.Contains(h, ":") {
+			parts := strings.SplitN(h, ":", 2)
+			if len(parts) != 2 {
+				return nil, fmt.Errorf(errMsg, h)
+			}
+			headers = append(headers, HttpHeader{name: strings.TrimSpace(parts[0]), value: strings.TrimSpace(parts[1])})
+			continue
+		}
+		return nil, fmt.Errorf(errMsg, h)
+	}
+	return headers, nil
+}
+
+func parseConfigFromFlags() (Config, error) {
+	parsedDelims, err := parseDelimiters(delimsFlag)
+	if err != nil {
+		return Config{}, err
+	}
+
+	parsedURLs, err := parseWaitURLs(waitFlag)
+	if err != nil {
+		return Config{}, err
+	}
+
+	parsedHeaders, err := parseHeaders(headersFlag, waitFlag)
+	if err != nil {
+		return Config{}, err
+	}
+
+	return Config{
+		version:           version,
+		poll:              poll,
+		templates:         templatesFlag,
+		stdoutTails:       stdoutTailFlag,
+		stderrTails:       stderrTailFlag,
+		headersFlag:       headersFlag,
+		delims:            parsedDelims,
+		headers:           parsedHeaders,
+		urls:              parsedURLs,
+		waits:             waitFlag,
+		waitTimeout:       waitTimeoutFlag,
+		waitRetryInterval: waitRetryInterval,
+		noOverwrite:       noOverwriteFlag,
+		args:              flag.Args(),
+	}, nil
+}
+
+func main() {
+	registerFlags()
 	flag.Parse()
 
-	if version {
+	config, err := parseConfigFromFlags()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if config.version {
 		fmt.Println(buildVersion)
 		return
 	}
@@ -245,41 +347,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	if delimsFlag != "" {
-		delims = strings.Split(delimsFlag, ":")
-		if len(delims) != 2 {
-			log.Fatalf("bad delimiters argument: %s. expected \"left:right\"", delimsFlag)
-		}
-	}
+	delims = config.delims
+	headers = config.headers
+	urls = config.urls
+	waitFlag = config.waits
+	waitTimeoutFlag = config.waitTimeout
+	waitRetryInterval = config.waitRetryInterval
+	noOverwriteFlag = config.noOverwrite
+	poll = config.poll
 
-	for _, host := range waitFlag {
-		u, err := url.Parse(host)
-		if err != nil {
-			log.Fatalf("bad hostname provided: %s. %s", host, err.Error())
-		}
-		urls = append(urls, *u)
-	}
-
-	for _, h := range headersFlag {
-		//validate headers need -wait options
-		if len(waitFlag) == 0 {
-			log.Fatalf("-wait-http-header \"%s\" provided with no -wait option", h)
-		}
-
-		const errMsg = "bad HTTP Headers argument: %s. expected \"headerName: headerValue\""
-		if strings.Contains(h, ":") {
-			parts := strings.SplitN(h, ":", 2)
-			if len(parts) != 2 {
-				log.Fatalf(errMsg, h)
-			}
-			headers = append(headers, HttpHeader{name: strings.TrimSpace(parts[0]), value: strings.TrimSpace(parts[1])})
-		} else {
-			log.Fatalf(errMsg, h)
-		}
-
-	}
-
-	for _, t := range templatesFlag {
+	for _, t := range config.templates {
 		template, dest := t, ""
 		if strings.Contains(t, ":") {
 			parts := strings.SplitN(t, ":", 2)
@@ -302,22 +379,21 @@ func main() {
 
 	waitForDependencies()
 
-	// Setup context
 	ctx, cancel = context.WithCancel(context.Background())
 
-	if flag.NArg() > 0 {
+	if len(config.args) > 0 {
 		wg.Add(1)
-		go runCmd(ctx, cancel, flag.Arg(0), flag.Args()[1:]...)
+		go runCmd(ctx, cancel, config.args[0], config.args[1:]...)
 	}
 
-	for _, out := range stdoutTailFlag {
+	for _, out := range config.stdoutTails {
 		wg.Add(1)
-		go tailFile(ctx, out, poll, os.Stdout)
+		go tailFile(ctx, out, config.poll, os.Stdout)
 	}
 
-	for _, err := range stderrTailFlag {
+	for _, err := range config.stderrTails {
 		wg.Add(1)
-		go tailFile(ctx, err, poll, os.Stderr)
+		go tailFile(ctx, err, config.poll, os.Stderr)
 	}
 
 	wg.Wait()
