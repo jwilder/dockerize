@@ -328,35 +328,8 @@ func parseConfigFromFlags() (Config, error) {
 	}, nil
 }
 
-func main() {
-	registerFlags()
-	flag.Parse()
-
-	config, err := parseConfigFromFlags()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if config.version {
-		fmt.Println(buildVersion)
-		return
-	}
-
-	if flag.NArg() == 0 && flag.NFlag() == 0 {
-		usage()
-		os.Exit(1)
-	}
-
-	delims = config.delims
-	headers = config.headers
-	urls = config.urls
-	waitFlag = config.waits
-	waitTimeoutFlag = config.waitTimeout
-	waitRetryInterval = config.waitRetryInterval
-	noOverwriteFlag = config.noOverwrite
-	poll = config.poll
-
-	for _, t := range config.templates {
+func processTemplates(templates []string) {
+	for _, t := range templates {
 		template, dest := t, ""
 		if strings.Contains(t, ":") {
 			parts := strings.SplitN(t, ":", 2)
@@ -376,25 +349,61 @@ func main() {
 			generateFile(template, dest)
 		}
 	}
+}
 
+func startCommand(ctx context.Context, cancel context.CancelFunc) {
+	if flag.NArg() > 0 {
+		wg.Add(1)
+		go runCmd(ctx, cancel, flag.Arg(0), flag.Args()[1:]...)
+	}
+}
+
+func startTailers(ctx context.Context) {
+	for _, out := range stdoutTailFlag {
+		wg.Add(1)
+		go tailFile(ctx, out, poll, os.Stdout)
+	}
+
+	for _, err := range stderrTailFlag {
+		wg.Add(1)
+		go tailFile(ctx, err, poll, os.Stderr)
+	}
+}
+
+func main() {
+	registerFlags()
+	flag.Parse()
+
+	config, err := parseConfigFromFlags()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	delims = config.delims
+	headers = config.headers
+	urls = config.urls
+	waitFlag = config.waits
+	waitTimeoutFlag = config.waitTimeout
+	waitRetryInterval = config.waitRetryInterval
+	noOverwriteFlag = config.noOverwrite
+	poll = config.poll
+
+	if config.version {
+		fmt.Println(buildVersion)
+		return
+	}
+
+	if flag.NArg() == 0 && flag.NFlag() == 0 {
+		usage()
+		os.Exit(1)
+	}
+
+	processTemplates(config.templates)
 	waitForDependencies()
 
 	ctx, cancel = context.WithCancel(context.Background())
-
-	if len(config.args) > 0 {
-		wg.Add(1)
-		go runCmd(ctx, cancel, config.args[0], config.args[1:]...)
-	}
-
-	for _, out := range config.stdoutTails {
-		wg.Add(1)
-		go tailFile(ctx, out, config.poll, os.Stdout)
-	}
-
-	for _, err := range config.stderrTails {
-		wg.Add(1)
-		go tailFile(ctx, err, config.poll, os.Stderr)
-	}
+	startCommand(ctx, cancel)
+	startTailers(ctx)
 
 	wg.Wait()
 }
