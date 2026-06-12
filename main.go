@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
 )
 
 const defaultWaitRetryInterval = time.Second
@@ -98,6 +97,13 @@ func (s *sliceVar) String() string {
 	return strings.Join(*s, ",")
 }
 
+// drainBody reads any remaining data from a response body and closes it.
+// Errors are deliberately ignored since this is cleanup-only.
+func drainBody(body io.ReadCloser) {
+	_, _ = io.Copy(io.Discard, body)
+	_ = body.Close()
+}
+
 func waitForDependencies() {
 	dependencyChan := make(chan struct{})
 
@@ -159,14 +165,11 @@ func waitForDependencies() {
 							time.Sleep(waitRetryInterval)
 						} else if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
 							log.Printf("Received %d from %s\n", resp.StatusCode, u.String())
-							// dispose the response body and close it.
-							io.Copy(io.Discard, resp.Body)
-							resp.Body.Close()
+							drainBody(resp.Body)
 							return
 						} else {
 							log.Printf("Received %d from %s. Sleeping %s\n", resp.StatusCode, u.String(), waitRetryInterval)
-							io.Copy(io.Discard, resp.Body)
-							resp.Body.Close()
+							drainBody(resp.Body)
 							time.Sleep(waitRetryInterval)
 						}
 					}
@@ -200,7 +203,7 @@ func waitForSocket(scheme, addr string, timeout time.Duration) {
 			}
 			if conn != nil {
 				log.Printf("Connected to %s://%s\n", scheme, addr)
-				conn.Close()
+				_ = conn.Close()
 				return
 			}
 		}
