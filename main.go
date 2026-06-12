@@ -268,7 +268,7 @@ func main() {
 
 		const errMsg = "bad HTTP Headers argument: %s. expected \"headerName: headerValue\""
 		if strings.Contains(h, ":") {
-			parts := strings.Split(h, ":")
+			parts := strings.SplitN(h, ":", 2)
 			if len(parts) != 2 {
 				log.Fatalf(errMsg, h)
 			}
@@ -282,7 +282,7 @@ func main() {
 	for _, t := range templatesFlag {
 		template, dest := t, ""
 		if strings.Contains(t, ":") {
-			parts := strings.Split(t, ":")
+			parts := strings.SplitN(t, ":", 2)
 			if len(parts) != 2 {
 				log.Fatalf("bad template argument: %s. expected \"/template:/dest\"", t)
 			}
