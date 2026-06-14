@@ -50,19 +50,20 @@ func runCmd(ctx context.Context, cancel context.CancelFunc, cmd string, args ...
 
 	if err == nil {
 		log.Println("Command finished successfully.")
-	} else {
-		log.Printf("Command exited with error: %s\n", err)
-
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
-				os.Exit(status.ExitStatus())
-			}
-		}
-
-		// Fallback for non-ExitError types (e.g., *os.SyscallError)
-		os.Exit(1)
+		return
 	}
+
+	log.Printf("Command exited with error: %s\n", err)
+
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
+			os.Exit(status.ExitStatus())
+		}
+	}
+
+	// Fallback for non-ExitError types (e.g., *os.SyscallError)
+	os.Exit(1)
 
 }
 
