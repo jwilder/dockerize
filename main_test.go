@@ -23,6 +23,52 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func TestStartTailersLaunchesTailers(t *testing.T) {
+	// Create temp files to tail
+	dir := t.TempDir()
+	outFile := filepath.Join(dir, "stdout.log")
+	errFile := filepath.Join(dir, "stderr.log")
+	if err := os.WriteFile(outFile, []byte("out\n"), 0o644); err != nil {
+		t.Fatalf("write outFile: %v", err)
+	}
+	if err := os.WriteFile(errFile, []byte("err\n"), 0o644); err != nil {
+		t.Fatalf("write errFile: %v", err)
+	}
+
+	// Save and restore global state
+	origStdout := stdoutTailFlag
+	origStderr := stderrTailFlag
+	origPoll := poll
+	defer func() {
+		stdoutTailFlag = origStdout
+		stderrTailFlag = origStderr
+		poll = origPoll
+	}()
+
+	stdoutTailFlag = sliceVar{outFile}
+	stderrTailFlag = sliceVar{errFile}
+	poll = true
+
+	ctx, cancel := context.WithCancel(context.Background())
+	startTailers(ctx)
+
+	// Give tailers time to start
+	time.Sleep(200 * time.Millisecond)
+	cancel()
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for tailers to stop")
+	}
+}
+
 func TestSliceVarString(t *testing.T) {
 	var sv sliceVar
 	sv.Set("test1")
