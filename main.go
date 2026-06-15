@@ -30,20 +30,20 @@ type HttpHeader struct {
 }
 
 type Config struct {
-	version          bool
-	poll             bool
-	templates        []string
-	stdoutTails      []string
-	stderrTails      []string
-	headersFlag      []string
-	delims           []string
-	headers          []HttpHeader
-	urls             []url.URL
-	waits            []string
-	waitTimeout      time.Duration
+	version           bool
+	poll              bool
+	templates         []string
+	stdoutTails       []string
+	stderrTails       []string
+	headersFlag       []string
+	delims            []string
+	headers           []HttpHeader
+	urls              []url.URL
+	waits             []string
+	waitTimeout       time.Duration
 	waitRetryInterval time.Duration
-	noOverwrite      bool
-	args             []string
+	noOverwrite       bool
+	args              []string
 }
 
 func (c *Context) Env() map[string]string {
@@ -362,14 +362,14 @@ func startCommand(ctx context.Context, cancel context.CancelFunc) {
 }
 
 func startTailers(ctx context.Context) {
-	for _, out := range stdoutTailFlag {
-		wg.Add(1)
-		go tailFile(ctx, out, poll, os.Stdout)
-	}
+	launchTailers(ctx, stdoutTailFlag, os.Stdout)
+	launchTailers(ctx, stderrTailFlag, os.Stderr)
+}
 
-	for _, err := range stderrTailFlag {
+func launchTailers(ctx context.Context, files []string, dest *os.File) {
+	for _, f := range files {
 		wg.Add(1)
-		go tailFile(ctx, err, poll, os.Stderr)
+		go tailFile(ctx, f, poll, dest)
 	}
 }
 
