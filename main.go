@@ -24,26 +24,26 @@ type hostFlagsVar []string
 type Context struct {
 }
 
-type HttpHeader struct {
+type HTTPHeader struct {
 	name  string
 	value string
 }
 
 type Config struct {
-	version          bool
-	poll             bool
-	templates        []string
-	stdoutTails      []string
-	stderrTails      []string
-	headersFlag      []string
-	delims           []string
-	headers          []HttpHeader
-	urls             []url.URL
-	waits            []string
-	waitTimeout      time.Duration
+	version           bool
+	poll              bool
+	templates         []string
+	stdoutTails       []string
+	stderrTails       []string
+	headersFlag       []string
+	delims            []string
+	headers           []HTTPHeader
+	urls              []url.URL
+	waits             []string
+	waitTimeout       time.Duration
 	waitRetryInterval time.Duration
-	noOverwrite      bool
-	args             []string
+	noOverwrite       bool
+	args              []string
 }
 
 func (c *Context) Env() map[string]string {
@@ -67,7 +67,7 @@ var (
 	headersFlag       sliceVar
 	delimsFlag        string
 	delims            []string
-	headers           []HttpHeader
+	headers           []HTTPHeader
 	urls              []url.URL
 	waitFlag          hostFlagsVar
 	waitRetryInterval time.Duration
@@ -276,8 +276,8 @@ func parseWaitURLs(hosts hostFlagsVar) ([]url.URL, error) {
 	return urls, nil
 }
 
-func parseHeaders(values []string, waits hostFlagsVar) ([]HttpHeader, error) {
-	headers := make([]HttpHeader, 0, len(values))
+func parseHeaders(values []string, waits hostFlagsVar) ([]HTTPHeader, error) {
+	headers := make([]HTTPHeader, 0, len(values))
 	for _, h := range values {
 		if len(waits) == 0 {
 			return nil, fmt.Errorf("-wait-http-header \"%s\" provided with no -wait option", h)
@@ -289,7 +289,7 @@ func parseHeaders(values []string, waits hostFlagsVar) ([]HttpHeader, error) {
 			if len(parts) != 2 {
 				return nil, fmt.Errorf(errMsg, h)
 			}
-			headers = append(headers, HttpHeader{name: strings.TrimSpace(parts[0]), value: strings.TrimSpace(parts[1])})
+			headers = append(headers, HTTPHeader{name: strings.TrimSpace(parts[0]), value: strings.TrimSpace(parts[1])})
 			continue
 		}
 		return nil, fmt.Errorf(errMsg, h)

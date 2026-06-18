@@ -62,7 +62,7 @@ func defaultValue(args ...interface{}) (string, error) {
 	return "", fmt.Errorf("default called with no default value")
 }
 
-func parseUrl(rawurl string) *url.URL {
+func parseURL(rawurl string) *url.URL {
 	u, err := url.Parse(rawurl)
 	if err != nil {
 		log.Fatalf("unable to parse url %s: %s", rawurl, err)
@@ -133,7 +133,7 @@ func generateFile(templatePath, destPath string) bool {
 		"split":     strings.Split,
 		"replace":   strings.Replace,
 		"default":   defaultValue,
-		"parseUrl":  parseUrl,
+		"parseUrl":  parseURL,
 		"atoi":      strconv.Atoi,
 		"add":       add,
 		"isTrue":    isTrue,
