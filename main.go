@@ -30,20 +30,20 @@ type HttpHeader struct {
 }
 
 type Config struct {
-	version          bool
-	poll             bool
-	templates        []string
-	stdoutTails      []string
-	stderrTails      []string
-	headersFlag      []string
-	delims           []string
-	headers          []HttpHeader
-	urls             []url.URL
-	waits            []string
-	waitTimeout      time.Duration
+	version           bool
+	poll              bool
+	templates         []string
+	stdoutTails       []string
+	stderrTails       []string
+	headersFlag       []string
+	delims            []string
+	headers           []HttpHeader
+	urls              []url.URL
+	waits             []string
+	waitTimeout       time.Duration
 	waitRetryInterval time.Duration
-	noOverwrite      bool
-	args             []string
+	noOverwrite       bool
+	args              []string
 }
 
 func (c *Context) Env() map[string]string {
@@ -286,9 +286,6 @@ func parseHeaders(values []string, waits hostFlagsVar) ([]HttpHeader, error) {
 		const errMsg = "bad HTTP Headers argument: %s. expected \"headerName: headerValue\""
 		if strings.Contains(h, ":") {
 			parts := strings.SplitN(h, ":", 2)
-			if len(parts) != 2 {
-				return nil, fmt.Errorf(errMsg, h)
-			}
 			headers = append(headers, HttpHeader{name: strings.TrimSpace(parts[0]), value: strings.TrimSpace(parts[1])})
 			continue
 		}
@@ -336,9 +333,6 @@ func processTemplates(templates []string) {
 		template, dest := t, ""
 		if strings.Contains(t, ":") {
 			parts := strings.SplitN(t, ":", 2)
-			if len(parts) != 2 {
-				log.Fatalf("bad template argument: %s. expected \"/template:/dest\"", t)
-			}
 			template, dest = parts[0], parts[1]
 		}
 
