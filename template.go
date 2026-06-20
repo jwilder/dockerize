@@ -34,7 +34,7 @@ func contains(item map[string]string, key string) bool {
 	return false
 }
 
-func defaultValue(args ...interface{}) (string, error) {
+func defaultValue(args ...any) (string, error) {
 	if len(args) == 0 {
 		return "", fmt.Errorf("default called with no values")
 	}
@@ -90,7 +90,7 @@ func isTrue(s string) bool {
 	}
 }
 
-func jsonQuery(jsonObj string, query string) (interface{}, error) {
+func jsonQuery(jsonObj string, query string) (any, error) {
 	parser, err := gojq.NewStringQuery(jsonObj)
 	if err != nil {
 		return "", fmt.Errorf("unable to parse JSON object %s: %w", jsonObj, err)
