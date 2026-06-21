@@ -283,6 +283,120 @@ func TestParseHeaders(t *testing.T) {
 	}
 }
 
+func TestParseConfigFromFlagsSuccess(t *testing.T) {
+	// Save globals
+	oldVersion := version
+	oldPoll := poll
+	oldTemplates := templatesFlag
+	oldStdout := stdoutTailFlag
+	oldStderr := stderrTailFlag
+	oldHeaders := headersFlag
+	oldDelims := delimsFlag
+	oldWait := waitFlag
+	oldTimeout := waitTimeoutFlag
+	oldRetry := waitRetryInterval
+	oldNoOverwrite := noOverwriteFlag
+	defer func() {
+		version = oldVersion
+		poll = oldPoll
+		templatesFlag = oldTemplates
+		stdoutTailFlag = oldStdout
+		stderrTailFlag = oldStderr
+		headersFlag = oldHeaders
+		delimsFlag = oldDelims
+		waitFlag = oldWait
+		waitTimeoutFlag = oldTimeout
+		waitRetryInterval = oldRetry
+		noOverwriteFlag = oldNoOverwrite
+	}()
+
+	// Set test values
+	version = true
+	poll = true
+	templatesFlag = sliceVar{"tmpl1:/dest1"}
+	stdoutTailFlag = sliceVar{"/var/log/out.log"}
+	stderrTailFlag = sliceVar{"/var/log/err.log"}
+	headersFlag = sliceVar{"X-Custom: value1"}
+	delimsFlag = "{{:}}"
+	waitFlag = hostFlagsVar{"http://example.com"}
+	waitTimeoutFlag = 5 * time.Second
+	waitRetryInterval = 2 * time.Second
+	noOverwriteFlag = true
+
+	config, err := parseConfigFromFlags()
+	assert.NoError(t, err)
+	assert.True(t, config.version)
+	assert.True(t, config.poll)
+	assert.Equal(t, []string{"tmpl1:/dest1"}, []string(config.templates))
+	assert.Equal(t, []string{"/var/log/out.log"}, []string(config.stdoutTails))
+	assert.Equal(t, []string{"/var/log/err.log"}, []string(config.stderrTails))
+	assert.Equal(t, []string{"X-Custom: value1"}, []string(config.headersFlag))
+	assert.Equal(t, []string{"{{", "}}"}, config.delims)
+	assert.Equal(t, []HttpHeader{{name: "X-Custom", value: "value1"}}, config.headers)
+	assert.Equal(t, []url.URL{{Scheme: "http", Host: "example.com"}}, config.urls)
+	assert.Equal(t, []string{"http://example.com"}, []string(config.waits))
+	assert.Equal(t, 5*time.Second, config.waitTimeout)
+	assert.Equal(t, 2*time.Second, config.waitRetryInterval)
+	assert.True(t, config.noOverwrite)
+}
+
+func TestParseConfigFromFlagsBadDelimiters(t *testing.T) {
+	oldDelims := delimsFlag
+	oldWait := waitFlag
+	oldHeaders := headersFlag
+	defer func() {
+		delimsFlag = oldDelims
+		waitFlag = oldWait
+		headersFlag = oldHeaders
+	}()
+
+	delimsFlag = "invalid"
+	waitFlag = nil
+	headersFlag = nil
+
+	_, err := parseConfigFromFlags()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "bad delimiters argument")
+}
+
+func TestParseConfigFromFlagsBadWaitURL(t *testing.T) {
+	oldDelims := delimsFlag
+	oldWait := waitFlag
+	oldHeaders := headersFlag
+	defer func() {
+		delimsFlag = oldDelims
+		waitFlag = oldWait
+		headersFlag = oldHeaders
+	}()
+
+	delimsFlag = ""
+	waitFlag = hostFlagsVar{"http://example.com/%zz"}
+	headersFlag = nil
+
+	_, err := parseConfigFromFlags()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "bad hostname provided")
+}
+
+func TestParseConfigFromFlagsBadHeaders(t *testing.T) {
+	oldDelims := delimsFlag
+	oldWait := waitFlag
+	oldHeaders := headersFlag
+	defer func() {
+		delimsFlag = oldDelims
+		waitFlag = oldWait
+		headersFlag = oldHeaders
+	}()
+
+	delimsFlag = ""
+	waitFlag = nil
+	headersFlag = sliceVar{"Accept: gzip"}
+
+	_, err := parseConfigFromFlags()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no -wait option")
+}
+
 func TestProcessTemplatesFileAndDirectoryArguments(t *testing.T) {
 	fileTemplateDir := t.TempDir()
 	filePath := filepath.Join(fileTemplateDir, "source.tmpl")
