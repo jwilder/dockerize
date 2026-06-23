@@ -30,20 +30,20 @@ type HttpHeader struct {
 }
 
 type Config struct {
-	version          bool
-	poll             bool
-	templates        []string
-	stdoutTails      []string
-	stderrTails      []string
-	headersFlag      []string
-	delims           []string
-	headers          []HttpHeader
-	urls             []url.URL
-	waits            []string
-	waitTimeout      time.Duration
+	version           bool
+	poll              bool
+	templates         []string
+	stdoutTails       []string
+	stderrTails       []string
+	headersFlag       []string
+	delims            []string
+	headers           []HttpHeader
+	urls              []url.URL
+	waits             []string
+	waitTimeout       time.Duration
 	waitRetryInterval time.Duration
-	noOverwrite      bool
-	args             []string
+	noOverwrite       bool
+	args              []string
 }
 
 func (c *Context) Env() map[string]string {
