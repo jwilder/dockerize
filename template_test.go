@@ -7,16 +7,23 @@ import (
 	"testing"
 )
 
-func TestGenerateFileRendersTemplateFunctions(t *testing.T) {
+// saveTemplateGlobals saves the current values of delims and noOverwriteFlag,
+// sets them to the given values, and returns a cleanup function that restores
+// the originals. Intended for use with t.Cleanup.
+func saveTemplateGlobals(t *testing.T, d []string, noOverwrite bool) {
+	t.Helper()
 	oldDelims := delims
 	oldNoOverwrite := noOverwriteFlag
-	defer func() {
+	delims = d
+	noOverwriteFlag = noOverwrite
+	t.Cleanup(func() {
 		delims = oldDelims
 		noOverwriteFlag = oldNoOverwrite
-	}()
+	})
+}
 
-	delims = nil
-	noOverwriteFlag = false
+func TestGenerateFileRendersTemplateFunctions(t *testing.T) {
+	saveTemplateGlobals(t, nil, false)
 
 	tempDir := t.TempDir()
 	templatePath := filepath.Join(tempDir, "config.tmpl")
@@ -43,15 +50,7 @@ func TestGenerateFileRendersTemplateFunctions(t *testing.T) {
 }
 
 func TestGenerateFileUsesCustomDelimiters(t *testing.T) {
-	oldDelims := delims
-	oldNoOverwrite := noOverwriteFlag
-	defer func() {
-		delims = oldDelims
-		noOverwriteFlag = oldNoOverwrite
-	}()
-
-	delims = []string{"[[", "]]"}
-	noOverwriteFlag = false
+	saveTemplateGlobals(t, []string{"[[", "]]"}, false)
 
 	tempDir := t.TempDir()
 	templatePath := filepath.Join(tempDir, "custom.tmpl")
@@ -76,15 +75,7 @@ func TestGenerateFileUsesCustomDelimiters(t *testing.T) {
 }
 
 func TestGenerateFileNoOverwrite(t *testing.T) {
-	oldDelims := delims
-	oldNoOverwrite := noOverwriteFlag
-	defer func() {
-		delims = oldDelims
-		noOverwriteFlag = oldNoOverwrite
-	}()
-
-	delims = nil
-	noOverwriteFlag = true
+	saveTemplateGlobals(t, nil, true)
 
 	tempDir := t.TempDir()
 	templatePath := filepath.Join(tempDir, "skip.tmpl")
@@ -112,15 +103,7 @@ func TestGenerateFileNoOverwrite(t *testing.T) {
 }
 
 func TestGenerateFileDefaultDoesNotPanicOnNonStringValue(t *testing.T) {
-	oldDelims := delims
-	oldNoOverwrite := noOverwriteFlag
-	defer func() {
-		delims = oldDelims
-		noOverwriteFlag = oldNoOverwrite
-	}()
-
-	delims = nil
-	noOverwriteFlag = false
+	saveTemplateGlobals(t, nil, false)
 
 	tempDir := t.TempDir()
 	templatePath := filepath.Join(tempDir, "default-non-string.tmpl")
@@ -210,15 +193,7 @@ func TestLoopChannelConsumesAllProducedValuesInOrder(t *testing.T) {
 }
 
 func TestGenerateDirRendersAllTemplates(t *testing.T) {
-	oldDelims := delims
-	oldNoOverwrite := noOverwriteFlag
-	defer func() {
-		delims = oldDelims
-		noOverwriteFlag = oldNoOverwrite
-	}()
-
-	delims = nil
-	noOverwriteFlag = false
+	saveTemplateGlobals(t, nil, false)
 
 	tempDir := t.TempDir()
 	templateDir := filepath.Join(tempDir, "templates")
