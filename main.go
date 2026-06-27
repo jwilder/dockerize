@@ -154,9 +154,8 @@ func waitForFile(u url.URL) {
 				return
 			} else if errors.Is(err, os.ErrNotExist) {
 				continue
-			} else {
-				log.Printf("Problem with check file %s exist: %v. Sleeping %s\n", u.String(), err.Error(), waitRetryInterval)
 			}
+			log.Printf("Problem with check file %s exist: %v. Sleeping %s\n", u.String(), err.Error(), waitRetryInterval)
 		}
 	}()
 }
@@ -185,7 +184,7 @@ func waitForHTTP(u url.URL) {
 			if err != nil {
 				log.Printf("Problem with request to %s: %s. Sleeping %s\n", u.String(), err.Error(), waitRetryInterval)
 				time.Sleep(waitRetryInterval)
-			} else if err == nil && resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			} else if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 				log.Printf("Received %d from %s\n", resp.StatusCode, u.String())
 				drainBody(resp.Body)
 				return
