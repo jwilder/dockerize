@@ -24,7 +24,7 @@ type hostFlagsVar []string
 type Context struct {
 }
 
-type HttpHeader struct {
+type httpHeader struct {
 	name  string
 	value string
 }
@@ -37,7 +37,7 @@ type Config struct {
 	stderrTails       []string
 	headersFlag       []string
 	delims            []string
-	headers           []HttpHeader
+	headers           []httpHeader
 	urls              []url.URL
 	waits             []string
 	waitTimeout       time.Duration
@@ -67,7 +67,7 @@ var (
 	headersFlag       sliceVar
 	delimsFlag        string
 	delims            []string
-	headers           []HttpHeader
+	headers           []httpHeader
 	urls              []url.URL
 	waitFlag          hostFlagsVar
 	waitRetryInterval time.Duration
@@ -283,8 +283,8 @@ func parseWaitURLs(hosts hostFlagsVar) ([]url.URL, error) {
 	return urls, nil
 }
 
-func parseHeaders(values []string, waits hostFlagsVar) ([]HttpHeader, error) {
-	headers := make([]HttpHeader, 0, len(values))
+func parseHeaders(values []string, waits hostFlagsVar) ([]httpHeader, error) {
+	headers := make([]httpHeader, 0, len(values))
 	for _, h := range values {
 		if len(waits) == 0 {
 			return nil, fmt.Errorf("-wait-http-header \"%s\" provided with no -wait option", h)
@@ -296,7 +296,7 @@ func parseHeaders(values []string, waits hostFlagsVar) ([]HttpHeader, error) {
 			if len(parts) != 2 {
 				return nil, fmt.Errorf(errMsg, h)
 			}
-			headers = append(headers, HttpHeader{name: strings.TrimSpace(parts[0]), value: strings.TrimSpace(parts[1])})
+			headers = append(headers, httpHeader{name: strings.TrimSpace(parts[0]), value: strings.TrimSpace(parts[1])})
 			continue
 		}
 		return nil, fmt.Errorf(errMsg, h)

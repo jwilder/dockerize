@@ -250,15 +250,15 @@ func TestParseHeaders(t *testing.T) {
 		name    string
 		values  []string
 		waits   hostFlagsVar
-		want    []HttpHeader
+		want    []httpHeader
 		wantErr string
 	}{
-		{name: "empty", values: nil, waits: hostFlagsVar{"http://example.com"}, want: []HttpHeader{}},
+		{name: "empty", values: nil, waits: hostFlagsVar{"http://example.com"}, want: []httpHeader{}},
 		{
 			name:   "valid headers",
 			values: []string{"Accept-Encoding: gzip", "X-Test: value:with:colon", "Authorization:Bearer token"},
 			waits:  hostFlagsVar{"http://example.com"},
-			want: []HttpHeader{
+			want: []httpHeader{
 				{name: "Accept-Encoding", value: "gzip"},
 				{name: "X-Test", value: "value:with:colon"},
 				{name: "Authorization", value: "Bearer token"},
@@ -435,7 +435,7 @@ func TestWaitForDependenciesWaitsForFileAndHTTP(t *testing.T) {
 	oldRetry := waitRetryInterval
 	oldTimeout := waitTimeoutFlag
 	urls = []url.URL{fileURL, *httpURL}
-	headers = []HttpHeader{{name: "X-Test", value: "value"}}
+	headers = []httpHeader{{name: "X-Test", value: "value"}}
 	waitFlag = hostFlagsVar{"file://" + readyFile, server.URL}
 	wg = sync.WaitGroup{}
 	waitRetryInterval = 10 * time.Millisecond
