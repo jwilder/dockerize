@@ -39,12 +39,8 @@ func defaultValue(args ...any) (string, error) {
 		return "", fmt.Errorf("default called with no values")
 	}
 
-	if len(args) > 0 {
-		if args[0] != nil {
-			if s, ok := args[0].(string); ok {
-				return s, nil
-			}
-		}
+	if s, ok := args[0].(string); ok {
+		return s, nil
 	}
 
 	if len(args) > 1 {
@@ -52,11 +48,12 @@ func defaultValue(args ...any) (string, error) {
 			return "", fmt.Errorf("default called with nil default value")
 		}
 
-		if _, ok := args[1].(string); !ok {
+		s, ok := args[1].(string)
+		if !ok {
 			return "", fmt.Errorf("default is not a string value, hint: surround it with double quotes")
 		}
 
-		return args[1].(string), nil
+		return s, nil
 	}
 
 	return "", fmt.Errorf("default called with no default value")
