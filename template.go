@@ -126,8 +126,11 @@ func loop(args ...int) (<-chan int, error) {
 	return c, nil
 }
 
-func generateFile(templatePath, destPath string) bool {
-	templateMap := template.FuncMap{
+// newTemplateFuncMap returns the combined template function map used for
+// rendering templates. It merges the sprig library functions with
+// dockerize-specific helpers, giving the latter precedence.
+func newTemplateFuncMap() template.FuncMap {
+	dockerizeFuncs := template.FuncMap{
 		"contains":  contains,
 		"exists":    exists,
 		"split":     strings.Split,
@@ -143,11 +146,29 @@ func generateFile(templatePath, destPath string) bool {
 		"loop":      loop,
 	}
 
-	combinedFuncMap := sprig.TxtFuncMap()
-	for k, v := range templateMap {
-		combinedFuncMap[k] = v
+	funcMap := sprig.TxtFuncMap()
+	for k, v := range dockerizeFuncs {
+		funcMap[k] = v
 	}
-	tmpl := template.New(filepath.Base(templatePath)).Funcs(combinedFuncMap)
+	return funcMap
+}
+
+// preserveFilePermissions copies the mode, uid, and gid of destPath onto dest.
+func preserveFilePermissions(dest *os.File, destPath string) {
+	fi, err := os.Stat(destPath)
+	if err != nil {
+		return
+	}
+	if err := dest.Chmod(fi.Mode()); err != nil {
+		log.Fatalf("unable to chmod temp file %s: %s\n", destPath, err)
+	}
+	if err := dest.Chown(int(fi.Sys().(*syscall.Stat_t).Uid), int(fi.Sys().(*syscall.Stat_t).Gid)); err != nil {
+		log.Fatalf("unable to chown temp file %s: %s\n", destPath, err)
+	}
+}
+
+func generateFile(templatePath, destPath string) bool {
+	tmpl := template.New(filepath.Base(templatePath)).Funcs(newTemplateFuncMap())
 
 	if len(delims) > 0 {
 		tmpl = tmpl.Delims(delims[0], delims[1])
@@ -176,15 +197,7 @@ func generateFile(templatePath, destPath string) bool {
 		log.Fatalf("template error %s, error: %s\n", templatePath, err)
 	}
 
-	if fi, err := os.Stat(destPath); err == nil {
-		if err := dest.Chmod(fi.Mode()); err != nil {
-			log.Fatalf("unable to chmod temp file %s: %s\n", destPath, err)
-		}
-		if err := dest.Chown(int(fi.Sys().(*syscall.Stat_t).Uid), int(fi.Sys().(*syscall.Stat_t).Gid)); err != nil {
-			log.Fatalf("unable to chown temp file %s: %s\n", destPath, err)
-		}
-	}
-
+	preserveFilePermissions(dest, destPath)
 	return true
 }
 
