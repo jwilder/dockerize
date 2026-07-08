@@ -37,7 +37,9 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 	}
 
 	defer func() {
-		t.Stop()
+		if err := t.Stop(); err != nil {
+			log.Printf("Warning: error stopping tail on %s: %s", file, err)
+		}
 		t.Cleanup()
 	}()
 
@@ -62,7 +64,9 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 				}
 				return
 			} else {
-				fmt.Fprintln(dest, line.Text)
+				if _, err := fmt.Fprintln(dest, line.Text); err != nil {
+					log.Printf("Warning: error writing tail output for %s: %s", file, err)
+				}
 				errCount = 0 // Zero the error count
 			}
 		}
