@@ -168,7 +168,6 @@ func generateFile(templatePath, destPath string) bool {
 		if err != nil {
 			log.Fatalf("unable to create %s, error: %s", destPath, err)
 		}
-		defer dest.Close()
 	}
 
 	err = tmpl.ExecuteTemplate(dest, filepath.Base(templatePath), &Context{})
@@ -182,6 +181,12 @@ func generateFile(templatePath, destPath string) bool {
 		}
 		if err := dest.Chown(int(fi.Sys().(*syscall.Stat_t).Uid), int(fi.Sys().(*syscall.Stat_t).Gid)); err != nil {
 			log.Fatalf("unable to chown temp file %s: %s\n", destPath, err)
+		}
+	}
+
+	if destPath != "" {
+		if err := dest.Close(); err != nil {
+			log.Fatalf("unable to close %s: %s", destPath, err)
 		}
 	}
 
