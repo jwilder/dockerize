@@ -126,7 +126,9 @@ func loop(args ...int) (<-chan int, error) {
 	return c, nil
 }
 
-func generateFile(templatePath, destPath string) bool {
+// newTemplateFuncMap returns a combined FuncMap merging sprig functions with
+// dockerize's custom template functions.
+func newTemplateFuncMap() template.FuncMap {
 	templateMap := template.FuncMap{
 		"contains":  contains,
 		"exists":    exists,
@@ -147,7 +149,11 @@ func generateFile(templatePath, destPath string) bool {
 	for k, v := range templateMap {
 		combinedFuncMap[k] = v
 	}
-	tmpl := template.New(filepath.Base(templatePath)).Funcs(combinedFuncMap)
+	return combinedFuncMap
+}
+
+func generateFile(templatePath, destPath string) bool {
+	tmpl := template.New(filepath.Base(templatePath)).Funcs(newTemplateFuncMap())
 
 	if len(delims) > 0 {
 		tmpl = tmpl.Delims(delims[0], delims[1])
