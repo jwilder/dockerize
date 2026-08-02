@@ -108,12 +108,12 @@ func TestDefaultValue(t *testing.T) {
 }
 
 func TestParseUrl(t *testing.T) {
-	url := parseUrl("http://example.com/path")
+	url := parseURL("http://example.com/path")
 	assert.Equal(t, "http", url.Scheme)
 	assert.Equal(t, "example.com", url.Host)
 	assert.Equal(t, "/path", url.Path)
 
-	url = parseUrl("https://api.example.com:8080/v1/users")
+	url = parseURL("https://api.example.com:8080/v1/users")
 	assert.Equal(t, "https", url.Scheme)
 	assert.Equal(t, "api.example.com:8080", url.Host)
 	assert.Equal(t, "/v1/users", url.Path)
@@ -250,15 +250,15 @@ func TestParseHeaders(t *testing.T) {
 		name    string
 		values  []string
 		waits   hostFlagsVar
-		want    []HttpHeader
+		want    []HTTPHeader
 		wantErr string
 	}{
-		{name: "empty", values: nil, waits: hostFlagsVar{"http://example.com"}, want: []HttpHeader{}},
+		{name: "empty", values: nil, waits: hostFlagsVar{"http://example.com"}, want: []HTTPHeader{}},
 		{
 			name:   "valid headers",
 			values: []string{"Accept-Encoding: gzip", "X-Test: value:with:colon", "Authorization:Bearer token"},
 			waits:  hostFlagsVar{"http://example.com"},
-			want: []HttpHeader{
+			want: []HTTPHeader{
 				{name: "Accept-Encoding", value: "gzip"},
 				{name: "X-Test", value: "value:with:colon"},
 				{name: "Authorization", value: "Bearer token"},
@@ -435,7 +435,7 @@ func TestWaitForDependenciesWaitsForFileAndHTTP(t *testing.T) {
 	oldRetry := waitRetryInterval
 	oldTimeout := waitTimeoutFlag
 	urls = []url.URL{fileURL, *httpURL}
-	headers = []HttpHeader{{name: "X-Test", value: "value"}}
+	headers = []HTTPHeader{{name: "X-Test", value: "value"}}
 	waitFlag = hostFlagsVar{"file://" + readyFile, server.URL}
 	wg = sync.WaitGroup{}
 	waitRetryInterval = 10 * time.Millisecond
