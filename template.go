@@ -168,7 +168,11 @@ func generateFile(templatePath, destPath string) bool {
 		if err != nil {
 			log.Fatalf("unable to create %s, error: %s", destPath, err)
 		}
-		defer dest.Close()
+		defer func() {
+			if closeErr := dest.Close(); closeErr != nil {
+				log.Fatalf("unable to close %s, error: %s", destPath, closeErr)
+			}
+		}()
 	}
 
 	err = tmpl.ExecuteTemplate(dest, filepath.Base(templatePath), &Context{})
