@@ -39,11 +39,9 @@ func defaultValue(args ...any) (string, error) {
 		return "", fmt.Errorf("default called with no values")
 	}
 
-	if len(args) > 0 {
-		if args[0] != nil {
-			if s, ok := args[0].(string); ok {
-				return s, nil
-			}
+	if args[0] != nil {
+		if s, ok := args[0].(string); ok {
+			return s, nil
 		}
 	}
 
