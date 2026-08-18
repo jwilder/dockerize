@@ -1,4 +1,4 @@
-FROM golang:1.25.12 AS binary
+FROM golang:1.25.13 AS binary
 
 WORKDIR /go/src/github.com/jwilder/dockerize
 COPY *.go go.* /go/src/github.com/jwilder/dockerize/
