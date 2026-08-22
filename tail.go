@@ -37,7 +37,7 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 	}
 
 	defer func() {
-		t.Stop()
+		_ = t.Stop()
 		t.Cleanup()
 	}()
 
@@ -62,7 +62,7 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 				}
 				return
 			} else {
-				fmt.Fprintln(dest, line.Text)
+				_, _ = fmt.Fprintln(dest, line.Text)
 				errCount = 0 // Zero the error count
 			}
 		}
