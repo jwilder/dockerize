@@ -105,6 +105,19 @@ func TestDefaultValue(t *testing.T) {
 
 	_, err = defaultValue()
 	assert.Error(t, err)
+
+	// non-string first arg falls through to default
+	result, err = defaultValue(42, "fallback")
+	assert.NoError(t, err)
+	assert.Equal(t, "fallback", result)
+
+	// non-string default value returns error
+	_, err = defaultValue(nil, 42)
+	assert.Error(t, err)
+
+	// single non-string arg with no default
+	_, err = defaultValue(42)
+	assert.Error(t, err)
 }
 
 func TestParseUrl(t *testing.T) {
