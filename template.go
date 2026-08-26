@@ -126,8 +126,8 @@ func loop(args ...int) (<-chan int, error) {
 	return c, nil
 }
 
-func generateFile(templatePath, destPath string) bool {
-	templateMap := template.FuncMap{
+func templateFuncMap() template.FuncMap {
+	funcMap := template.FuncMap{
 		"contains":  contains,
 		"exists":    exists,
 		"split":     strings.Split,
@@ -143,11 +143,15 @@ func generateFile(templatePath, destPath string) bool {
 		"loop":      loop,
 	}
 
-	combinedFuncMap := sprig.TxtFuncMap()
-	for k, v := range templateMap {
-		combinedFuncMap[k] = v
+	combined := sprig.TxtFuncMap()
+	for k, v := range funcMap {
+		combined[k] = v
 	}
-	tmpl := template.New(filepath.Base(templatePath)).Funcs(combinedFuncMap)
+	return combined
+}
+
+func generateFile(templatePath, destPath string) bool {
+	tmpl := template.New(filepath.Base(templatePath)).Funcs(templateFuncMap())
 
 	if len(delims) > 0 {
 		tmpl = tmpl.Delims(delims[0], delims[1])
@@ -176,16 +180,22 @@ func generateFile(templatePath, destPath string) bool {
 		log.Fatalf("template error %s, error: %s\n", templatePath, err)
 	}
 
-	if fi, err := os.Stat(destPath); err == nil {
-		if err := dest.Chmod(fi.Mode()); err != nil {
-			log.Fatalf("unable to chmod temp file %s: %s\n", destPath, err)
-		}
-		if err := dest.Chown(int(fi.Sys().(*syscall.Stat_t).Uid), int(fi.Sys().(*syscall.Stat_t).Gid)); err != nil {
-			log.Fatalf("unable to chown temp file %s: %s\n", destPath, err)
-		}
-	}
+	preserveFilePermissions(dest, destPath)
 
 	return true
+}
+
+func preserveFilePermissions(dest *os.File, destPath string) {
+	fi, err := os.Stat(destPath)
+	if err != nil {
+		return
+	}
+	if err := dest.Chmod(fi.Mode()); err != nil {
+		log.Fatalf("unable to chmod temp file %s: %s\n", destPath, err)
+	}
+	if err := dest.Chown(int(fi.Sys().(*syscall.Stat_t).Uid), int(fi.Sys().(*syscall.Stat_t).Gid)); err != nil {
+		log.Fatalf("unable to chown temp file %s: %s\n", destPath, err)
+	}
 }
 
 func generateDir(templateDir, destDir string) bool {
