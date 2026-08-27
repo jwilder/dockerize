@@ -154,9 +154,8 @@ func waitForFile(u url.URL) {
 				return
 			} else if errors.Is(err, os.ErrNotExist) {
 				continue
-			} else {
-				log.Printf("Problem with check file %s exist: %v. Sleeping %s\n", u.String(), err.Error(), waitRetryInterval)
 			}
+			log.Printf("Problem with check file %s exist: %v. Sleeping %s\n", u.String(), err.Error(), waitRetryInterval)
 		}
 	}()
 }
