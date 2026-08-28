@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -206,6 +207,41 @@ func TestLoopChannelConsumesAllProducedValuesInOrder(t *testing.T) {
 		if got[i] != want[i] {
 			t.Fatalf("value %d mismatch: got %d want %d (full sequence got %v want %v)", i, got[i], want[i], got, want)
 		}
+	}
+}
+
+func TestGenerateDirToStdout(t *testing.T) {
+	delims = nil
+	noOverwriteFlag = false
+
+	templateDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(templateDir, "hello.txt"), []byte(`hello`), 0o644); err != nil {
+		t.Fatalf("write template: %v", err)
+	}
+
+	// Capture stdout
+	oldStdout := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	os.Stdout = w
+
+	ok := generateDir(templateDir, "")
+
+	w.Close()
+	os.Stdout = oldStdout
+
+	if !ok {
+		t.Fatalf("generateDir returned false")
+	}
+
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatalf("read pipe: %v", err)
+	}
+	if string(out) != "hello" {
+		t.Fatalf("stdout output mismatch: got %q want %q", string(out), "hello")
 	}
 }
 
