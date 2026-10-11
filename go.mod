@@ -1,6 +1,6 @@
 module github.com/jwilder/dockerize
 
-go 1.27.0
+go 1.27.2
 
 require (
 	github.com/Masterminds/sprig/v3 v3.3.0
