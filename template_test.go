@@ -326,3 +326,44 @@ func TestTemplateFuncMapDockerizeOverridesSprig(t *testing.T) {
 		}
 	}
 }
+
+func TestGenerateFileRendersReadmeExamples(t *testing.T) {
+	oldDelims := delims
+	oldNoOverwrite := noOverwriteFlag
+	defer func() {
+		delims = oldDelims
+		noOverwriteFlag = oldNoOverwrite
+	}()
+
+	delims = nil
+	noOverwriteFlag = false
+
+	t.Setenv("PATH", "/usr/bin:/bin:/usr/local/bin")
+	t.Setenv("DOCKERIZE_README_SET", "1")
+	if err := os.Unsetenv("DOCKERIZE_README_UNSET"); err != nil {
+		t.Fatalf("unset env: %v", err)
+	}
+
+	tempDir := t.TempDir()
+	templatePath := filepath.Join(tempDir, "readme.tmpl")
+	destPath := filepath.Join(tempDir, "readme.out")
+
+	templateContent := `{{ replace .Env.PATH ":" ";" -1 }}|{{ if contains .Env "DOCKERIZE_README_SET" }}set{{ else }}unset{{ end }}|{{ if contains .Env "DOCKERIZE_README_UNSET" }}set{{ else }}unset{{ end }}`
+	if err := os.WriteFile(templatePath, []byte(templateContent), 0o644); err != nil {
+		t.Fatalf("write template: %v", err)
+	}
+
+	if ok := generateFile(templatePath, destPath); !ok {
+		t.Fatalf("generateFile returned false")
+	}
+
+	got, err := os.ReadFile(destPath)
+	if err != nil {
+		t.Fatalf("read rendered file: %v", err)
+	}
+
+	want := "/usr/bin;/bin;/usr/local/bin|set|unset"
+	if string(got) != want {
+		t.Fatalf("rendered output mismatch: got %q want %q", string(got), want)
+	}
+}
