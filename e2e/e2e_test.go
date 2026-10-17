@@ -25,7 +25,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("failed to create temp dir: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	dockerizeBin = filepath.Join(tmpDir, "dockerize")
 
@@ -103,7 +103,7 @@ func TestTemplateBasic(t *testing.T) {
 	tmplFile := filepath.Join(dir, "test.tmpl")
 	destFile := filepath.Join(dir, "output.conf")
 
-	os.WriteFile(tmplFile, []byte(`server {{ .Env.TEST_HOST }}:{{ .Env.TEST_PORT }}`), 0644)
+	writeFile(t, tmplFile, []byte(`server {{ .Env.TEST_HOST }}:{{ .Env.TEST_PORT }}`))
 
 	cmd := exec.Command(dockerizeBin, "-template", tmplFile+":"+destFile)
 	cmd.Env = append(os.Environ(), "TEST_HOST=localhost", "TEST_PORT=8080")
@@ -122,7 +122,7 @@ func TestTemplateBasic(t *testing.T) {
 func TestTemplateToStdout(t *testing.T) {
 	dir := t.TempDir()
 	tmplFile := filepath.Join(dir, "hello.tmpl")
-	os.WriteFile(tmplFile, []byte(`hello {{ .Env.NAME }}`), 0644)
+	writeFile(t, tmplFile, []byte(`hello {{ .Env.NAME }}`))
 
 	cmd := exec.Command(dockerizeBin, "-template", tmplFile)
 	cmd.Env = append(os.Environ(), "NAME=world")
@@ -141,7 +141,7 @@ func TestTemplateCustomDelims(t *testing.T) {
 	tmplFile := filepath.Join(dir, "custom.tmpl")
 	destFile := filepath.Join(dir, "output.txt")
 
-	os.WriteFile(tmplFile, []byte(`value=<% .Env.MY_VAR %>`), 0644)
+	writeFile(t, tmplFile, []byte(`value=<% .Env.MY_VAR %>`))
 
 	cmd := exec.Command(dockerizeBin, "-delims", "<%:%>", "-template", tmplFile+":"+destFile)
 	cmd.Env = append(os.Environ(), "MY_VAR=custom_delims_work")
@@ -161,8 +161,8 @@ func TestTemplateNoOverwrite(t *testing.T) {
 	tmplFile := filepath.Join(dir, "tmpl.tmpl")
 	destFile := filepath.Join(dir, "dest.txt")
 
-	os.WriteFile(tmplFile, []byte(`new content`), 0644)
-	os.WriteFile(destFile, []byte(`original content`), 0644)
+	writeFile(t, tmplFile, []byte(`new content`))
+	writeFile(t, destFile, []byte(`original content`))
 
 	cmd := exec.Command(dockerizeBin, "-no-overwrite", "-template", tmplFile+":"+destFile)
 	out, err := cmd.CombinedOutput()
@@ -180,11 +180,11 @@ func TestTemplateDirectory(t *testing.T) {
 	dir := t.TempDir()
 	tmplDir := filepath.Join(dir, "templates")
 	destDir := filepath.Join(dir, "output")
-	os.MkdirAll(tmplDir, 0755)
-	os.MkdirAll(destDir, 0755)
+	mkdirAll(t, tmplDir)
+	mkdirAll(t, destDir)
 
-	os.WriteFile(filepath.Join(tmplDir, "a.conf"), []byte(`a={{ .Env.A }}`), 0644)
-	os.WriteFile(filepath.Join(tmplDir, "b.conf"), []byte(`b={{ .Env.B }}`), 0644)
+	writeFile(t, filepath.Join(tmplDir, "a.conf"), []byte(`a={{ .Env.A }}`))
+	writeFile(t, filepath.Join(tmplDir, "b.conf"), []byte(`b={{ .Env.B }}`))
 
 	cmd := exec.Command(dockerizeBin, "-template", tmplDir+":"+destDir)
 	cmd.Env = append(os.Environ(), "A=alpha", "B=beta")
@@ -209,7 +209,7 @@ func TestTemplateSprigFunctions(t *testing.T) {
 	destFile := filepath.Join(dir, "out.txt")
 
 	tmpl := `{{ .Env.GREETING | upper }}_{{ "  padded  " | trimAll " " }}`
-	os.WriteFile(tmplFile, []byte(tmpl), 0644)
+	writeFile(t, tmplFile, []byte(tmpl))
 
 	cmd := exec.Command(dockerizeBin, "-template", tmplFile+":"+destFile)
 	cmd.Env = append(os.Environ(), "GREETING=hello")
@@ -230,7 +230,7 @@ func TestStdoutTail(t *testing.T) {
 	dir := t.TempDir()
 	logFile := filepath.Join(dir, "app.log")
 
-	os.WriteFile(logFile, []byte("line1\nline2\n"), 0644)
+	writeFile(t, logFile, []byte("line1\nline2\n"))
 
 	cmd := exec.Command(dockerizeBin, "-stdout", logFile, "-poll", "sh", "-c", "sleep 0.5")
 	out, err := cmd.CombinedOutput()
@@ -247,7 +247,7 @@ func TestStdoutTail(t *testing.T) {
 func TestStderrTail(t *testing.T) {
 	dir := t.TempDir()
 	logFile := filepath.Join(dir, "error.log")
-	os.WriteFile(logFile, []byte("err1\nerr2\n"), 0644)
+	writeFile(t, logFile, []byte("err1\nerr2\n"))
 
 	cmd := exec.Command(dockerizeBin, "-stderr", logFile, "-poll", "sh", "-c", "sleep 0.5")
 	var stderr bytes.Buffer
@@ -270,7 +270,7 @@ func TestWaitTCP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to listen: %v", err)
 	}
-	defer ln.Close()
+	t.Cleanup(func() { _ = ln.Close() })
 
 	addr := ln.Addr().String()
 
@@ -349,7 +349,7 @@ func TestWaitFile(t *testing.T) {
 
 	go func() {
 		time.Sleep(1 * time.Second)
-		os.WriteFile(waitFile, []byte("ok"), 0644)
+		_ = os.WriteFile(waitFile, []byte("ok"), 0644)
 	}()
 
 	cmd := exec.Command(dockerizeBin, "-wait", "file://"+waitFile, "-timeout", "5s", "echo", "file-ready")
@@ -372,8 +372,8 @@ func TestWaitMultiple(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to listen: %v", err)
 	}
-	defer ln1.Close()
-	defer ln2.Close()
+	t.Cleanup(func() { _ = ln1.Close() })
+	t.Cleanup(func() { _ = ln2.Close() })
 
 	cmd := exec.Command(dockerizeBin,
 		"-wait", "tcp://"+ln1.Addr().String(),
@@ -476,7 +476,7 @@ func TestTemplateEnvContext(t *testing.T) {
 	destFile := filepath.Join(dir, "out.txt")
 
 	tmpl := `host={{ .Env.DB_HOST }} port={{ .Env.DB_PORT }} pass={{ .Env.DB_PASS }}`
-	os.WriteFile(tmplFile, []byte(tmpl), 0644)
+	writeFile(t, tmplFile, []byte(tmpl))
 
 	cmd := exec.Command(dockerizeBin, "-template", tmplFile+":"+destFile)
 	cmd.Env = append(os.Environ(), "DB_HOST=pg.local", "DB_PORT=5432", "DB_PASS=p@ss=w0rd!")
@@ -499,7 +499,7 @@ func TestTemplateEnvRange(t *testing.T) {
 
 	// Range over .Env filtering by prefix
 	tmpl := `{{ range $k, $v := .Env }}{{ if hasPrefix "MYAPP_" $k }}{{ $k }}={{ $v }}` + "\n" + `{{ end }}{{ end }}`
-	os.WriteFile(tmplFile, []byte(tmpl), 0644)
+	writeFile(t, tmplFile, []byte(tmpl))
 
 	cmd := exec.Command(dockerizeBin, "-template", tmplFile+":"+destFile)
 	cmd.Env = []string{"MYAPP_HOST=web1", "MYAPP_PORT=9090", "OTHER_VAR=ignore"}
@@ -523,7 +523,7 @@ func TestTemplateEnvMissing(t *testing.T) {
 	destFile := filepath.Join(dir, "out.txt")
 
 	tmpl := `before[{{ .Env.DEFINITELY_NOT_SET }}]after`
-	os.WriteFile(tmplFile, []byte(tmpl), 0644)
+	writeFile(t, tmplFile, []byte(tmpl))
 
 	cmd := exec.Command(dockerizeBin, "-template", tmplFile+":"+destFile)
 	// Deliberately don't set DEFINITELY_NOT_SET
@@ -547,7 +547,7 @@ func TestTemplateFuncDefault(t *testing.T) {
 	destFile := filepath.Join(dir, "out.txt")
 
 	tmpl := `port={{ default .Env.PORT "3000" }}`
-	os.WriteFile(tmplFile, []byte(tmpl), 0644)
+	writeFile(t, tmplFile, []byte(tmpl))
 
 	// Test with PORT unset — should use default
 	cmd := exec.Command(dockerizeBin, "-template", tmplFile+":"+destFile)
@@ -580,7 +580,7 @@ func TestTemplateFuncContains(t *testing.T) {
 	destFile := filepath.Join(dir, "out.txt")
 
 	tmpl := `{{ if contains .Env "SECRET" }}has-secret{{ else }}no-secret{{ end }}`
-	os.WriteFile(tmplFile, []byte(tmpl), 0644)
+	writeFile(t, tmplFile, []byte(tmpl))
 
 	// With SECRET set
 	cmd := exec.Command(dockerizeBin, "-template", tmplFile+":"+destFile)
@@ -610,7 +610,7 @@ func TestTemplateFuncContains(t *testing.T) {
 func TestTemplateFuncExists(t *testing.T) {
 	dir := t.TempDir()
 	existingFile := filepath.Join(dir, "present.conf")
-	os.WriteFile(existingFile, []byte("x"), 0644)
+	writeFile(t, existingFile, []byte("x"))
 
 	tmplFile := filepath.Join(dir, "exists.tmpl")
 	destFile := filepath.Join(dir, "out.txt")
@@ -618,7 +618,7 @@ func TestTemplateFuncExists(t *testing.T) {
 	// exists returns (bool, error) — use with index or assign
 	tmpl := fmt.Sprintf(`{{ $e := exists "%s" }}{{ $m := exists "%s/absent.conf" }}{{ $e }}-{{ $m }}`,
 		existingFile, dir)
-	os.WriteFile(tmplFile, []byte(tmpl), 0644)
+	writeFile(t, tmplFile, []byte(tmpl))
 
 	cmd := exec.Command(dockerizeBin, "-template", tmplFile+":"+destFile)
 	cmd.Env = os.Environ()
@@ -643,7 +643,7 @@ replaced={{ replace .Env.GREETING "hello" "hi" 1 }}
 lower={{ lower .Env.UPPER }}
 upper={{ upper .Env.LOWER }}
 sum={{ add (atoi .Env.A) (atoi .Env.B) }}`
-	os.WriteFile(tmplFile, []byte(tmpl), 0644)
+	writeFile(t, tmplFile, []byte(tmpl))
 
 	cmd := exec.Command(dockerizeBin, "-template", tmplFile+":"+destFile)
 	cmd.Env = []string{"CSV=one,two,three", "GREETING=hello world", "UPPER=LOUD", "LOWER=quiet", "A=10", "B=32"}
@@ -665,7 +665,7 @@ func TestTemplateFuncParseUrl(t *testing.T) {
 	destFile := filepath.Join(dir, "out.txt")
 
 	tmpl := `{{ $u := parseUrl .Env.DATABASE_URL }}host={{ $u.Host }} scheme={{ $u.Scheme }} path={{ $u.Path }}`
-	os.WriteFile(tmplFile, []byte(tmpl), 0644)
+	writeFile(t, tmplFile, []byte(tmpl))
 
 	cmd := exec.Command(dockerizeBin, "-template", tmplFile+":"+destFile)
 	cmd.Env = []string{"DATABASE_URL=postgres://db.example.com:5432/mydb"}
@@ -687,7 +687,7 @@ func TestTemplateFuncIsTrue(t *testing.T) {
 	destFile := filepath.Join(dir, "out.txt")
 
 	tmpl := `{{ if isTrue .Env.ENABLED }}on{{ else }}off{{ end }}-{{ if isTrue .Env.DISABLED }}on{{ else }}off{{ end }}`
-	os.WriteFile(tmplFile, []byte(tmpl), 0644)
+	writeFile(t, tmplFile, []byte(tmpl))
 
 	tests := []struct {
 		enabled  string
@@ -723,7 +723,7 @@ func TestTemplateFuncJsonQuery(t *testing.T) {
 	destFile := filepath.Join(dir, "out.txt")
 
 	tmpl := `name={{ jsonQuery .Env.CONFIG "name" }} version={{ jsonQuery .Env.CONFIG "version" }}`
-	os.WriteFile(tmplFile, []byte(tmpl), 0644)
+	writeFile(t, tmplFile, []byte(tmpl))
 
 	jsonVal := `{"name":"myapp","version":"1.2.3"}`
 	cmd := exec.Command(dockerizeBin, "-template", tmplFile+":"+destFile)
@@ -749,7 +749,7 @@ func TestTemplateFuncLoop(t *testing.T) {
 	tmpl := `a={{ range $i := loop 3 }}{{ $i }}{{ end }}
 b={{ range $i := loop 2 5 }}{{ $i }}{{ end }}
 c={{ range $i := loop 0 10 3 }}{{ $i }}{{ end }}`
-	os.WriteFile(tmplFile, []byte(tmpl), 0644)
+	writeFile(t, tmplFile, []byte(tmpl))
 
 	cmd := exec.Command(dockerizeBin, "-template", tmplFile+":"+destFile)
 	cmd.Env = []string{"HOME=/tmp"}
@@ -762,5 +762,21 @@ c={{ range $i := loop 0 10 3 }}{{ $i }}{{ end }}`
 	expected := "a=012\nb=234\nc=0369"
 	if string(got) != expected {
 		t.Fatalf("expected:\n%s\ngot:\n%s", expected, string(got))
+	}
+}
+
+// writeFile writes data to name, failing the test if it cannot be written.
+func writeFile(t *testing.T, name string, data []byte) {
+	t.Helper()
+	if err := os.WriteFile(name, data, 0644); err != nil {
+		t.Fatalf("failed to write %s: %v", name, err)
+	}
+}
+
+// mkdirAll creates path and any missing parents, failing the test on error.
+func mkdirAll(t *testing.T, path string) {
+	t.Helper()
+	if err := os.MkdirAll(path, 0755); err != nil {
+		t.Fatalf("failed to create %s: %v", path, err)
 	}
 }
