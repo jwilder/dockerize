@@ -137,6 +137,53 @@ func TestParseConfigFromFlags(t *testing.T) {
 	})
 }
 
+func TestParseConfigFromFlagsWaitURLs(t *testing.T) {
+	rejected := []struct {
+		name    string
+		url     string
+		wantErr string
+	}{
+		{name: "file with relative path in host", url: "file://rel/path", wantErr: `invalid -wait "file://rel/path": path must be absolute, use file:///abs/path`},
+		{name: "file opaque path", url: "file:foo", wantErr: `invalid -wait "file:foo": path must be absolute, use file:///abs/path`},
+		{name: "file without path", url: "file:", wantErr: `invalid -wait "file:": missing absolute path, use file:///abs/path`},
+		{name: "unix without path", url: "unix:", wantErr: `invalid -wait "unix:": missing absolute path, use unix:///abs/path`},
+		{name: "unix with relative path in host", url: "unix://rel/sock", wantErr: `invalid -wait "unix://rel/sock": path must be absolute, use unix:///abs/path`},
+		{name: "tcp without host", url: "tcp://", wantErr: `invalid -wait "tcp://": missing host, expected tcp://host:port`},
+		{name: "tcp without port", url: "tcp://host", wantErr: `invalid -wait "tcp://host": missing port, expected tcp://host:port`},
+		{name: "tcp6 without port", url: "tcp6://[::1]", wantErr: `invalid -wait "tcp6://[::1]": missing port, expected tcp6://host:port`},
+		{name: "tcp4 without host", url: "tcp4://:8080", wantErr: `invalid -wait "tcp4://:8080": missing host, expected tcp4://host:port`},
+		{name: "http without host", url: "http:///health", wantErr: `invalid -wait "http:///health": missing host, expected http://host[:port][/path]`},
+		{name: "https without host", url: "https://", wantErr: `invalid -wait "https://": missing host, expected https://host[:port][/path]`},
+		{name: "unsupported scheme", url: "ftp://x", wantErr: `invalid -wait "ftp://x": unsupported scheme "ftp", supported schemes are: file, tcp, tcp4, tcp6, unix, http, https`},
+		{name: "missing scheme", url: "db:5432", wantErr: `invalid -wait "db:5432": unsupported scheme "db", supported schemes are: file, tcp, tcp4, tcp6, unix, http, https`},
+	}
+	for _, tt := range rejected {
+		t.Run("rejects "+tt.name, func(t *testing.T) {
+			cfg, err := parseFlagsForTest(t, []string{"-wait", tt.url})
+			assert.EqualError(t, err, tt.wantErr)
+			assert.Equal(t, Config{}, cfg)
+		})
+	}
+
+	accepted := []string{
+		"tcp://db:5432",
+		"tcp4://127.0.0.1:8080",
+		"tcp6://[::1]:8080",
+		"http://web:8000/health",
+		"https://api.example.com:8443/v1/users",
+		"http://127.0.0.1:19999",
+		"file:///tmp/ready",
+		"unix:///var/run/docker.sock",
+	}
+	for _, u := range accepted {
+		t.Run("accepts "+u, func(t *testing.T) {
+			cfg, err := parseFlagsForTest(t, []string{"-wait", u})
+			require.NoError(t, err)
+			assert.Equal(t, []string{u}, urlStrings(cfg.urls))
+		})
+	}
+}
+
 func TestParseConfigFromFlagsWaitRetryInterval(t *testing.T) {
 	tests := []struct {
 		name     string

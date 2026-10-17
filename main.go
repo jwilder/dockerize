@@ -140,7 +140,7 @@ func waitForDependencies() {
 			case "http", "https":
 				waitForHTTP(u)
 			default:
-				log.Fatalf("invalid host protocol provided: %s. supported protocols are: tcp, tcp4, tcp6 and http", u.Scheme)
+				log.Fatalf("invalid host protocol provided: %s. supported protocols are: %s", u.Scheme, supportedWaitSchemes)
 			}
 		}
 		wg.Wait()
@@ -285,6 +285,9 @@ func parseDelimiters(value string) ([]string, error) {
 	return delims, nil
 }
 
+// supportedWaitSchemes lists the -wait URL schemes waitForDependencies handles.
+const supportedWaitSchemes = "file, tcp, tcp4, tcp6, unix, http, https"
+
 func parseWaitURLs(hosts hostFlagsVar) ([]url.URL, error) {
 	urls := make([]url.URL, 0, len(hosts))
 	for _, host := range hosts {
@@ -292,9 +295,40 @@ func parseWaitURLs(hosts hostFlagsVar) ([]url.URL, error) {
 		if err != nil {
 			return nil, fmt.Errorf("bad hostname provided: %s. %s", host, err.Error())
 		}
+		if err := validateWaitURL(u); err != nil {
+			return nil, fmt.Errorf("invalid -wait \"%s\": %s", host, err.Error())
+		}
 		urls = append(urls, *u)
 	}
 	return urls, nil
+}
+
+// validateWaitURL checks that a -wait URL has the parts its scheme needs, so a
+// malformed URL fails at startup instead of waiting on the wrong target.
+func validateWaitURL(u *url.URL) error {
+	switch u.Scheme {
+	case "file", "unix":
+		if u.Opaque != "" || u.Host != "" {
+			return fmt.Errorf("path must be absolute, use %s:///abs/path", u.Scheme)
+		}
+		if !strings.HasPrefix(u.Path, "/") {
+			return fmt.Errorf("missing absolute path, use %s:///abs/path", u.Scheme)
+		}
+	case "tcp", "tcp4", "tcp6":
+		if u.Hostname() == "" {
+			return fmt.Errorf("missing host, expected %s://host:port", u.Scheme)
+		}
+		if u.Port() == "" {
+			return fmt.Errorf("missing port, expected %s://host:port", u.Scheme)
+		}
+	case "http", "https":
+		if u.Hostname() == "" {
+			return fmt.Errorf("missing host, expected %s://host[:port][/path]", u.Scheme)
+		}
+	default:
+		return fmt.Errorf("unsupported scheme %q, supported schemes are: %s", u.Scheme, supportedWaitSchemes)
+	}
+	return nil
 }
 
 func parseHeaders(values []string, waits hostFlagsVar) ([]HttpHeader, error) {
