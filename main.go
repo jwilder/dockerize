@@ -1,3 +1,6 @@
+// Dockerize is a utility for rendering templates from environment variables,
+// waiting for dependencies to become available, tailing log files, and then
+// executing a command.
 package main
 
 import (
@@ -21,14 +24,19 @@ const defaultWaitRetryInterval = time.Second
 type sliceVar []string
 type hostFlagsVar []string
 
+// Context is the data passed to templates when they are rendered. Its methods
+// are callable from templates, for example {{ .Env.HOME }}.
 type Context struct {
 }
 
+// HttpHeader is a name and value pair sent with the HTTP requests made when
+// waiting on a URL, set with -wait-http-header.
 type HttpHeader struct {
 	name  string
 	value string
 }
 
+// Config holds the options parsed from the command-line flags.
 type Config struct {
 	version           bool
 	poll              bool
@@ -46,6 +54,8 @@ type Config struct {
 	args              []string
 }
 
+// Env returns the current process environment as a map of variable names to
+// values. It is used as .Env in templates.
 func (c *Context) Env() map[string]string {
 	env := make(map[string]string, len(os.Environ()))
 	for _, i := range os.Environ() {
