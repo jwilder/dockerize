@@ -2,7 +2,10 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
+	"errors"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,7 +26,11 @@ func TestTailFileWritesAppendedLines(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create dest file: %v", err)
 	}
-	defer dest.Close()
+	defer func() {
+		if err := dest.Close(); err != nil {
+			t.Errorf("close dest file: %v", err)
+		}
+	}()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	wg.Add(1)
@@ -36,7 +43,7 @@ func TestTailFileWritesAppendedLines(t *testing.T) {
 			t.Fatalf("open source for append: %v", err)
 		}
 		if _, err := f.WriteString(line + "\n"); err != nil {
-			f.Close()
+			_ = f.Close()
 			t.Fatalf("append source line: %v", err)
 		}
 		if err := f.Close(); err != nil {
@@ -132,5 +139,63 @@ func TestTailFileStopsWhenContextCanceled(t *testing.T) {
 	}
 	if string(got) != "" {
 		t.Fatalf("expected no tailed output, got %q", string(got))
+	}
+}
+
+// errWriter is an io.Writer whose every Write fails.
+type errWriter struct {
+	err error
+}
+
+func (w errWriter) Write(p []byte) (int, error) {
+	return 0, w.err
+}
+
+func TestTailFileStopsOnWriteError(t *testing.T) {
+	tailDir := t.TempDir()
+	sourcePath := filepath.Join(tailDir, "source.log")
+
+	if err := os.WriteFile(sourcePath, []byte{}, 0o644); err != nil {
+		t.Fatalf("write source file: %v", err)
+	}
+
+	var logBuf bytes.Buffer
+	prevOutput := log.Writer()
+	log.SetOutput(&logBuf)
+	t.Cleanup(func() { log.SetOutput(prevOutput) })
+
+	writeErr := errors.New("destination is closed")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	wg.Add(1)
+	go tailFile(ctx, sourcePath, true, errWriter{err: writeErr})
+
+	time.Sleep(200 * time.Millisecond)
+	f, err := os.OpenFile(sourcePath, os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		t.Fatalf("open source for append: %v", err)
+	}
+	if _, err := f.WriteString("line\n"); err != nil {
+		_ = f.Close()
+		t.Fatalf("append source line: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("close source file: %v", err)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("tailFile did not return after a write error")
+	}
+
+	if got := logBuf.String(); !strings.Contains(got, "unable to write tailed line from") || !strings.Contains(got, writeErr.Error()) {
+		t.Fatalf("expected write error in log output, got %q", got)
 	}
 }
