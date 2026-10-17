@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -262,6 +263,59 @@ func TestGenerateDirRendersAllTemplates(t *testing.T) {
 		}
 		if string(got) != want {
 			t.Fatalf("rendered output mismatch for %s: got %q want %q", name, string(got), want)
+		}
+	}
+}
+
+func TestGenerateFileWritesFullContentAndKeepsMode(t *testing.T) {
+	oldDelims := delims
+	oldNoOverwrite := noOverwriteFlag
+	defer func() {
+		delims = oldDelims
+		noOverwriteFlag = oldNoOverwrite
+	}()
+
+	delims = nil
+	noOverwriteFlag = false
+
+	tempDir := t.TempDir()
+	templatePath := filepath.Join(tempDir, "big.tmpl")
+	destPath := filepath.Join(tempDir, "big.out")
+
+	templateContent := strings.Repeat("line {{ add 1 2 }} {{ upper \"abc\" }}\n", 5000)
+	if err := os.WriteFile(templatePath, []byte(templateContent), 0o644); err != nil {
+		t.Fatalf("write template: %v", err)
+	}
+	if err := os.WriteFile(destPath, []byte("stale"), 0o640); err != nil {
+		t.Fatalf("write existing destination: %v", err)
+	}
+	if err := os.Chmod(destPath, 0o640); err != nil {
+		t.Fatalf("chmod destination: %v", err)
+	}
+
+	if ok := generateFile(templatePath, destPath); !ok {
+		t.Fatalf("generateFile returned false")
+	}
+
+	got, err := os.ReadFile(destPath)
+	if err != nil {
+		t.Fatalf("read rendered file: %v", err)
+	}
+	want := strings.Repeat("line 3 ABC\n", 5000)
+	if string(got) != want {
+		t.Fatalf("rendered output mismatch: got %d bytes want %d bytes", len(got), len(want))
+	}
+
+	fi, err := os.Stat(destPath)
+	if err != nil {
+		t.Fatalf("stat rendered file: %v", err)
+	}
+	if mode := fi.Mode().Perm(); mode != 0o640 {
+		t.Fatalf("mode mismatch: got %o want %o", mode, 0o640)
+	}
+	if st, ok := fi.Sys().(*syscall.Stat_t); ok {
+		if int(st.Uid) != os.Getuid() || int(st.Gid) != os.Getgid() {
+			t.Fatalf("owner mismatch: got %d:%d want %d:%d", st.Uid, st.Gid, os.Getuid(), os.Getgid())
 		}
 	}
 }
