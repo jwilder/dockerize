@@ -129,7 +129,7 @@ $ dockerize -stdout info.log -stdout perf.log -poll
 If your file uses `{{` and `}}` as part of it's syntax, you can change the template escape characters using the `-delims`. Both delimiters must be non-empty.
 
 ```
-$ dockerize -delims "<%:%>"
+$ dockerize -delims "<%:%>" -template template1.tmpl:file
 ```
 
 Http headers can be specified for http/https protocols.
@@ -143,6 +143,21 @@ Use `-version` to show the version and exit.
 ```
 $ dockerize -version
 ```
+
+### Flag combinations
+
+Some options only have an effect alongside another option. dockerize rejects an option that is given without its companion at startup, with an error naming both flags, instead of silently ignoring it:
+
+| Option | Needs |
+| --- | --- |
+| `-poll` | `-stdout` or `-stderr` |
+| `-no-overwrite` | `-template` |
+| `-delims` | `-template` |
+| `-timeout` | `-wait` |
+| `-wait-retry-interval` | `-wait` |
+| `-wait-http-header` | `-wait` |
+
+This is a behaviour change: a command line that passes one of these options without its companion now exits with status 1 instead of running. Remove the inert option, or add the companion it needs.
 
 ## Waiting for other dependencies
 
