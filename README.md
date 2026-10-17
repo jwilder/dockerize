@@ -162,7 +162,7 @@ You can optionally specify how long to wait for the services to become available
 $ dockerize -wait tcp://db:5432 -wait http://web:80 -timeout 10s
 ```
 
-By default dockerize waits 1s between connection attempts. Use `-wait-retry-interval` to change this, for example to retry less often against a slow service.
+By default dockerize waits 1s between connection attempts. Use `-wait-retry-interval` to change this, for example to retry less often against a slow service. The value must be positive: `0` or a negative duration is rejected with an error.
 
 ```
 $ dockerize -wait tcp://db:5432 -timeout 30s -wait-retry-interval 2s

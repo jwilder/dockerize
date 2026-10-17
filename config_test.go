@@ -137,6 +137,32 @@ func TestParseConfigFromFlags(t *testing.T) {
 	})
 }
 
+func TestParseConfigFromFlagsWaitRetryInterval(t *testing.T) {
+	tests := []struct {
+		name     string
+		interval string
+		want     time.Duration
+		wantErr  string
+	}{
+		{name: "zero is rejected", interval: "0", wantErr: "-wait-retry-interval must be positive, got 0s"},
+		{name: "negative is rejected", interval: "-1s", wantErr: "-wait-retry-interval must be positive, got -1s"},
+		{name: "one nanosecond is accepted", interval: "1ns", want: time.Nanosecond},
+		{name: "one second is accepted", interval: "1s", want: time.Second},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := parseFlagsForTest(t, []string{"-wait-retry-interval", tt.interval})
+			if tt.wantErr != "" {
+				assert.EqualError(t, err, tt.wantErr)
+				assert.Equal(t, Config{}, cfg)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, cfg.waitRetryInterval)
+		})
+	}
+}
+
 func TestParseConfigFromFlagsRestoresCommandLine(t *testing.T) {
 	before := flag.CommandLine
 	t.Run("parse", func(t *testing.T) {
