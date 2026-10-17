@@ -156,7 +156,7 @@ $ dockerize -wait tcp://db:5432 -wait http://web:80 -wait file:///tmp/generated-
 
 ### Timeout
 
-You can optionally specify how long to wait for the services to become available by using the `-timeout #` argument (Default: 10 seconds).  If the timeout is reached and the service is still not available, the process exits with status code 1.
+You can optionally specify how long to wait for the services to become available by using the `-timeout #` argument (Default: 10 seconds).  If the timeout is reached and the service is still not available, the process exits with status code 1.  The value must be positive when `-wait` is used: `0` or a negative duration is rejected with an error.
 
 ```
 $ dockerize -wait tcp://db:5432 -wait http://web:80 -timeout 10s

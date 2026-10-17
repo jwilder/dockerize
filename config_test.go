@@ -163,6 +163,33 @@ func TestParseConfigFromFlagsWaitRetryInterval(t *testing.T) {
 	}
 }
 
+func TestParseConfigFromFlagsWaitTimeout(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    []string
+		want    time.Duration
+		wantErr string
+	}{
+		{name: "zero with wait is rejected", args: []string{"-wait", "tcp://db:5432", "-timeout", "0"}, wantErr: "-timeout must be positive when -wait is used, got 0s"},
+		{name: "negative with wait is rejected", args: []string{"-wait", "tcp://db:5432", "-timeout=-1s"}, wantErr: "-timeout must be positive when -wait is used, got -1s"},
+		{name: "one second with wait is accepted", args: []string{"-wait", "tcp://db:5432", "-timeout", "1s"}, want: time.Second},
+		{name: "zero without wait is accepted", args: []string{"-timeout", "0"}, want: 0},
+		{name: "negative without wait is accepted", args: []string{"-timeout=-1s"}, want: -time.Second},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := parseFlagsForTest(t, tt.args)
+			if tt.wantErr != "" {
+				assert.EqualError(t, err, tt.wantErr)
+				assert.Equal(t, Config{}, cfg)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, cfg.waitTimeout)
+		})
+	}
+}
+
 func TestParseConfigFromFlagsRestoresCommandLine(t *testing.T) {
 	before := flag.CommandLine
 	t.Run("parse", func(t *testing.T) {

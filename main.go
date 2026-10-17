@@ -329,6 +329,10 @@ func parseConfigFromFlags() (Config, error) {
 		return Config{}, fmt.Errorf("-wait-retry-interval must be positive, got %s", waitRetryInterval)
 	}
 
+	if len(waitFlag) > 0 && waitTimeoutFlag <= 0 {
+		return Config{}, fmt.Errorf("-timeout must be positive when -wait is used, got %s", waitTimeoutFlag)
+	}
+
 	return Config{
 		version:           version,
 		poll:              poll,
