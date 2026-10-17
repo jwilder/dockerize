@@ -198,7 +198,7 @@ func TestParseConfigFromFlagsWaitRetryInterval(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg, err := parseFlagsForTest(t, []string{"-wait-retry-interval", tt.interval})
+			cfg, err := parseFlagsForTest(t, []string{"-wait", "tcp://db:5432", "-wait-retry-interval", tt.interval})
 			if tt.wantErr != "" {
 				assert.EqualError(t, err, tt.wantErr)
 				assert.Equal(t, Config{}, cfg)
@@ -220,8 +220,6 @@ func TestParseConfigFromFlagsWaitTimeout(t *testing.T) {
 		{name: "zero with wait is rejected", args: []string{"-wait", "tcp://db:5432", "-timeout", "0"}, wantErr: "-timeout must be positive when -wait is used, got 0s"},
 		{name: "negative with wait is rejected", args: []string{"-wait", "tcp://db:5432", "-timeout=-1s"}, wantErr: "-timeout must be positive when -wait is used, got -1s"},
 		{name: "one second with wait is accepted", args: []string{"-wait", "tcp://db:5432", "-timeout", "1s"}, want: time.Second},
-		{name: "zero without wait is accepted", args: []string{"-timeout", "0"}, want: 0},
-		{name: "negative without wait is accepted", args: []string{"-timeout=-1s"}, want: -time.Second},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -233,6 +231,48 @@ func TestParseConfigFromFlagsWaitTimeout(t *testing.T) {
 			}
 			require.NoError(t, err)
 			assert.Equal(t, tt.want, cfg.waitTimeout)
+		})
+	}
+}
+
+func TestParseConfigFromFlagsRejectsInertFlags(t *testing.T) {
+	tests := []struct {
+		name    string
+		args    []string
+		wantErr string
+	}{
+		{name: "poll without stdout or stderr", args: []string{"-poll", "echo"}, wantErr: "-poll provided with no -stdout or -stderr option"},
+		{name: "no-overwrite without template", args: []string{"-no-overwrite", "echo"}, wantErr: "-no-overwrite provided with no -template option"},
+		{name: "delims without template", args: []string{"-delims", "<%:%>", "echo"}, wantErr: `-delims "<%:%>" provided with no -template option`},
+		{name: "timeout without wait", args: []string{"-timeout", "5s", "echo"}, wantErr: "-timeout 5s provided with no -wait option"},
+		{name: "zero timeout without wait", args: []string{"-timeout", "0", "echo"}, wantErr: "-timeout 0s provided with no -wait option"},
+		{name: "negative timeout without wait", args: []string{"-timeout=-1s", "echo"}, wantErr: "-timeout -1s provided with no -wait option"},
+		{name: "wait-retry-interval without wait", args: []string{"-wait-retry-interval", "2s", "echo"}, wantErr: "-wait-retry-interval 2s provided with no -wait option"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := parseFlagsForTest(t, tt.args)
+			assert.EqualError(t, err, tt.wantErr)
+			assert.Equal(t, Config{}, cfg)
+		})
+	}
+
+	accepted := []struct {
+		name string
+		args []string
+	}{
+		{name: "poll with stdout", args: []string{"-poll", "-stdout", "/var/log/a.log", "echo"}},
+		{name: "poll with stderr", args: []string{"-poll", "-stderr", "/var/log/err.log", "echo"}},
+		{name: "no-overwrite with template", args: []string{"-no-overwrite", "-template", "a.tmpl:/etc/a.conf"}},
+		{name: "delims with template", args: []string{"-delims", "<%:%>", "-template", "a.tmpl:/etc/a.conf"}},
+		{name: "timeout with wait", args: []string{"-timeout", "5s", "-wait", "tcp://db:5432", "echo"}},
+		{name: "wait-retry-interval with wait", args: []string{"-wait-retry-interval", "2s", "-wait", "tcp://db:5432", "echo"}},
+		{name: "defaults without companions", args: []string{"echo", "hi"}},
+	}
+	for _, tt := range accepted {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := parseFlagsForTest(t, tt.args)
+			require.NoError(t, err)
 		})
 	}
 }
@@ -256,7 +296,7 @@ func TestParseConfigFromFlagsRejectsEmptyDelimiters(t *testing.T) {
 	}
 
 	t.Run("accepts non-empty delimiters", func(t *testing.T) {
-		cfg, err := parseFlagsForTest(t, []string{"-delims", "<%:%>"})
+		cfg, err := parseFlagsForTest(t, []string{"-delims", "<%:%>", "-template", "a.tmpl:/etc/a.conf"})
 		require.NoError(t, err)
 		assert.Equal(t, []string{"<%", "%>"}, cfg.delims)
 	})

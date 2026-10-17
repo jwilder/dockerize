@@ -432,6 +432,28 @@ func parseConfigFromFlags() (Config, error) {
 		return Config{}, fmt.Errorf("-timeout must be positive when -wait is used, got %s", waitTimeoutFlag)
 	}
 
+	// Flags with no effect without a companion option are errors, not silently
+	// ignored. The duration flags have defaults, so they are checked with
+	// flag.Visit rather than by comparing against the default value.
+	explicit := make(map[string]bool)
+	flag.Visit(func(f *flag.Flag) { explicit[f.Name] = true })
+
+	if explicit["timeout"] && len(waitFlag) == 0 {
+		return Config{}, fmt.Errorf("-timeout %s provided with no -wait option", waitTimeoutFlag)
+	}
+	if explicit["wait-retry-interval"] && len(waitFlag) == 0 {
+		return Config{}, fmt.Errorf("-wait-retry-interval %s provided with no -wait option", waitRetryInterval)
+	}
+	if poll && len(stdoutTailFlag)+len(stderrTailFlag) == 0 {
+		return Config{}, fmt.Errorf("-poll provided with no -stdout or -stderr option")
+	}
+	if noOverwriteFlag && len(templatesFlag) == 0 {
+		return Config{}, fmt.Errorf("-no-overwrite provided with no -template option")
+	}
+	if delimsFlag != "" && len(templatesFlag) == 0 {
+		return Config{}, fmt.Errorf("-delims \"%s\" provided with no -template option", delimsFlag)
+	}
+
 	return Config{
 		version:           version,
 		poll:              poll,
