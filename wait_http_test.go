@@ -1,15 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -17,34 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-// syncBuffer is a bytes.Buffer that is safe to write from the retry goroutine while the test reads it.
-type syncBuffer struct {
-	mu  sync.Mutex
-	buf bytes.Buffer
-}
-
-func (b *syncBuffer) Write(p []byte) (int, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return b.buf.Write(p)
-}
-
-func (b *syncBuffer) String() string {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return b.buf.String()
-}
-
-// captureLog sends the standard logger to a buffer for the rest of the test.
-func captureLog(t *testing.T) *syncBuffer {
-	t.Helper()
-
-	var buf syncBuffer
-	log.SetOutput(&buf)
-	t.Cleanup(func() { log.SetOutput(os.Stderr) })
-	return &buf
-}
 
 // waitGroupDone returns a channel that is closed once wg is done.
 func waitGroupDone() <-chan struct{} {
