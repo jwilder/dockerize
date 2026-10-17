@@ -57,10 +57,19 @@ type Config struct {
 // Env returns the current process environment as a map of variable names to
 // values. It is used as .Env in templates.
 func (c *Context) Env() map[string]string {
-	env := make(map[string]string, len(os.Environ()))
-	for _, i := range os.Environ() {
-		sep := strings.Index(i, "=")
-		env[i[0:sep]] = i[sep+1:]
+	return envMap(os.Environ())
+}
+
+// envMap parses environment entries of the form NAME=value into a map. Entries
+// without an '=' are skipped; the value keeps everything after the first '='.
+func envMap(environ []string) map[string]string {
+	env := make(map[string]string, len(environ))
+	for _, i := range environ {
+		key, value, found := strings.Cut(i, "=")
+		if !found {
+			continue
+		}
+		env[key] = value
 	}
 	return env
 }

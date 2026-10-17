@@ -103,6 +103,23 @@ func TestContextEnvReturnsCurrentEnvironment(t *testing.T) {
 	assert.Equal(t, expected, env)
 }
 
+func TestEnvMapSkipsEntriesWithoutEquals(t *testing.T) {
+	t.Parallel()
+
+	env := envMap([]string{"A=1", "BADENTRY", "B=x=y", "=empty"})
+
+	// An empty key is kept, as it was before envMap existed.
+	assert.Equal(t, map[string]string{"A": "1", "B": "x=y", "": "empty"}, env)
+}
+
+func TestEnvMapKeepsEverythingAfterFirstEquals(t *testing.T) {
+	t.Parallel()
+
+	env := envMap([]string{"JSON={\"a\":\"b=c\"}", "EMPTY="})
+
+	assert.Equal(t, map[string]string{"JSON": "{\"a\":\"b=c\"}", "EMPTY": ""}, env)
+}
+
 func TestDefaultValue(t *testing.T) {
 	t.Parallel()
 
