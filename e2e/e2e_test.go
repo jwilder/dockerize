@@ -84,8 +84,7 @@ func TestExitCodePassthrough(t *testing.T) {
 			if err == nil {
 				t.Fatalf("expected non-zero exit")
 			}
-			var exitErr *exec.ExitError
-			if errors.As(err, &exitErr) {
+			if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 				if exitErr.ExitCode() != tt.exitCode {
 					t.Fatalf("expected exit code %d, got %d", tt.exitCode, exitErr.ExitCode())
 				}

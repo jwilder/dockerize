@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os/exec"
 	"syscall"
 	"testing"
@@ -13,8 +14,7 @@ func extractExitCode(err error) int {
 		return 0
 	}
 
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) {
+	if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 		if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 			return status.ExitStatus()
 		}
@@ -34,6 +34,17 @@ func TestExtractExitCode_FromExitError(t *testing.T) {
 	code := extractExitCode(err)
 	if code != 42 {
 		t.Fatalf("expected exit code 42, got %d", code)
+	}
+}
+
+func TestExtractExitCode_FromWrappedExitError(t *testing.T) {
+	cmd := exec.Command("sh", "-c", "exit 3")
+	exitErr := cmd.Run()
+
+	err := fmt.Errorf("run: %w", exitErr)
+	code := extractExitCode(err)
+	if code != 3 {
+		t.Fatalf("expected exit code 3, got %d", code)
 	}
 }
 
