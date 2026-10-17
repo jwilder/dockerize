@@ -75,7 +75,7 @@ func TestWaitForDependenciesUnixSocket(t *testing.T) {
 	sockPath := filepath.Join(t.TempDir(), "s.sock")
 	l, err := net.Listen("unix", sockPath)
 	require.NoError(t, err)
-	defer l.Close()
+	defer func() { _ = l.Close() }()
 
 	u, err := url.Parse("unix://" + sockPath)
 	require.NoError(t, err)
@@ -92,7 +92,7 @@ func TestWaitForDependenciesTCP4(t *testing.T) {
 
 	l, err := net.Listen("tcp4", "127.0.0.1:0")
 	require.NoError(t, err)
-	defer l.Close()
+	defer func() { _ = l.Close() }()
 
 	u, err := url.Parse("tcp4://" + l.Addr().String())
 	require.NoError(t, err)
@@ -109,7 +109,7 @@ func TestWaitForDependenciesTCP6(t *testing.T) {
 	if err != nil {
 		t.Skipf("IPv6 loopback not available: %v", err)
 	}
-	defer l.Close()
+	defer func() { _ = l.Close() }()
 
 	resetGlobals(t)
 
