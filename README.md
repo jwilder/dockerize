@@ -126,7 +126,7 @@ $ dockerize -stdout info.log -stdout perf.log -poll
 
 ```
 
-If your file uses `{{` and `}}` as part of it's syntax, you can change the template escape characters using the `-delims`.
+If your file uses `{{` and `}}` as part of it's syntax, you can change the template escape characters using the `-delims`. Both delimiters must be non-empty.
 
 ```
 $ dockerize -delims "<%:%>"
