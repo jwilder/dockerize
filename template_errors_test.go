@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
+	"text/template"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -74,13 +77,6 @@ var templateFatalCases = []templateFatalCase{
 		wantErr: "bad directory",
 	},
 	{
-		name: "parse-url",
-		run: func(t *testing.T) {
-			_ = parseUrl("http://[::1")
-		},
-		wantErr: "unable to parse url",
-	},
-	{
 		name: "template-syntax",
 		run: func(t *testing.T) {
 			src := writeTemplateFile(t, t.TempDir(), "bad.tmpl", "{{ if }}")
@@ -118,6 +114,35 @@ func TestTemplateFatalPaths(t *testing.T) {
 			assert.Contains(t, stderr, tc.wantErr)
 		})
 	}
+}
+
+func TestParseUrlBadURLReturnsError(t *testing.T) {
+	t.Parallel()
+
+	got, err := parseUrl("http://a b/%zz")
+	require.Error(t, err)
+	assert.Nil(t, got)
+	assert.ErrorContains(t, err, `unable to parse url "http://a b/%zz"`)
+}
+
+func TestTemplateParseUrlBadURLIsExecutionError(t *testing.T) {
+	t.Parallel()
+
+	tmpl := template.Must(template.New("url").Funcs(templateFuncMap()).Parse(`{{ parseUrl "http://a b/%zz" }}`))
+	err := tmpl.Execute(io.Discard, nil)
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "unable to parse url")
+}
+
+func TestTemplateParseUrlGoodURLRendersFields(t *testing.T) {
+	t.Parallel()
+
+	tmpl := template.Must(template.New("url").Funcs(templateFuncMap()).Parse(
+		`{{ $u := parseUrl .X }}{{ $u.Scheme }} {{ $u.Host }} {{ $u.Path }} {{ (parseUrl .X).Host }}`))
+	var out bytes.Buffer
+	err := tmpl.Execute(&out, map[string]string{"X": "postgres://db.example.com:5432/mydb"})
+	require.NoError(t, err)
+	assert.Equal(t, "postgres db.example.com:5432 /mydb db.example.com:5432", out.String())
 }
 
 func TestProcessTemplatesSplitsDestOnFirstColon(t *testing.T) {

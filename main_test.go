@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -145,12 +146,14 @@ func TestDefaultValue(t *testing.T) {
 func TestParseUrl(t *testing.T) {
 	t.Parallel()
 
-	url := parseUrl("http://example.com/path")
+	url, err := parseUrl("http://example.com/path")
+	require.NoError(t, err)
 	assert.Equal(t, "http", url.Scheme)
 	assert.Equal(t, "example.com", url.Host)
 	assert.Equal(t, "/path", url.Path)
 
-	url = parseUrl("https://api.example.com:8080/v1/users")
+	url, err = parseUrl("https://api.example.com:8080/v1/users")
+	require.NoError(t, err)
 	assert.Equal(t, "https", url.Scheme)
 	assert.Equal(t, "api.example.com:8080", url.Host)
 	assert.Equal(t, "/v1/users", url.Path)

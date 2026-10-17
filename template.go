@@ -63,12 +63,12 @@ func defaultValue(args ...any) (string, error) {
 	return "", fmt.Errorf("default called with no default value")
 }
 
-func parseUrl(rawurl string) *url.URL {
+func parseUrl(rawurl string) (*url.URL, error) {
 	u, err := url.Parse(rawurl)
 	if err != nil {
-		log.Fatalf("unable to parse url %s: %s", rawurl, err)
+		return nil, fmt.Errorf("unable to parse url %q: %w", rawurl, err)
 	}
-	return u
+	return u, nil
 }
 
 func add(arg1, arg2 int) int {
