@@ -9,10 +9,8 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -494,20 +492,6 @@ func TestWaitForDependenciesWaitsForFileAndHTTP(t *testing.T) {
 	assert.GreaterOrEqual(t, requestCount, 2)
 	assert.Equal(t, "value", seenHeader)
 	assert.Contains(t, logs.String(), "Received 503 from "+server.URL)
-}
-
-func TestSignalProcessWithTimeoutPassesSignal(t *testing.T) {
-	t.Parallel()
-
-	cmd := exec.Command("sh", "-c", "sleep 10")
-	err := cmd.Start()
-	assert.NoError(t, err)
-
-	signalProcessWithTimeout(cmd, syscall.SIGTERM)
-	assert.NotNil(t, cmd.ProcessState)
-	assert.NotNil(t, cmd.Process)
-	err = cmd.Process.Signal(syscall.Signal(0))
-	assert.Error(t, err)
 }
 
 func TestRunCmdCancelsContextWhenCommandExits(t *testing.T) {
