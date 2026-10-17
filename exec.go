@@ -67,11 +67,15 @@ func runCmd(ctx context.Context, cancel context.CancelFunc, cmd string, args ...
 }
 
 func signalProcessWithTimeout(process *exec.Cmd, sig os.Signal, waitDone ...<-chan struct{}) {
-	process.Process.Signal(sig) // pretty sure this doesn't do anything. It seems like the signal is automatically sent to the command?
+	// pretty sure this doesn't do anything. It seems like the signal is automatically sent to the command?
+	if err := process.Process.Signal(sig); err != nil && !errors.Is(err, os.ErrProcessDone) {
+		log.Printf("Error sending signal to command: %s\n", err)
+	}
 	if len(waitDone) == 0 {
 		done := make(chan struct{})
 		go func() {
-			process.Wait()
+			// Only signals completion; the caller's own Wait reports the exit status.
+			_ = process.Wait()
 			close(done)
 		}()
 		waitDone = []<-chan struct{}{done}
@@ -81,6 +85,8 @@ func signalProcessWithTimeout(process *exec.Cmd, sig os.Signal, waitDone ...<-ch
 		return
 	case <-time.After(10 * time.Second):
 		log.Println("Killing command due to timeout.")
-		process.Process.Kill()
+		if err := process.Process.Kill(); err != nil && !errors.Is(err, os.ErrProcessDone) {
+			log.Printf("Error killing command: %s\n", err)
+		}
 	}
 }
