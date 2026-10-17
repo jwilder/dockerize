@@ -337,3 +337,54 @@ func TestMainFatalCases(t *testing.T) {
 		assert.Contains(t, stderr, `bad delimiters argument: a:b:c. expected "left:right"`)
 	})
 }
+
+func TestParseHeadersRejectsInvalidNamesAndValues(t *testing.T) {
+	t.Parallel()
+
+	waits := hostFlagsVar{"http://example.com"}
+	tests := []struct {
+		name    string
+		header  string
+		wantErr string
+	}{
+		{name: "empty name", header: ": v", wantErr: `invalid -wait-http-header ": v": header name must be a non-empty HTTP token`},
+		{name: "name with space", header: "Bad Name: v", wantErr: `invalid -wait-http-header "Bad Name: v": header name must be a non-empty HTTP token`},
+		{name: "name with control character", header: "Bad\x01Name: v", wantErr: `invalid -wait-http-header "Bad\x01Name: v": header name must be a non-empty HTTP token`},
+		{name: "value with newline", header: "X: a\nb", wantErr: `invalid -wait-http-header "X: a\nb": header value contains a control character`},
+		{name: "value with carriage return", header: "X: a\rb", wantErr: `invalid -wait-http-header "X: a\rb": header value contains a control character`},
+		{name: "value with NUL", header: "X: a\x00b", wantErr: `invalid -wait-http-header "X: a\x00b": header value contains a control character`},
+		{name: "value with DEL", header: "X: a\x7fb", wantErr: `invalid -wait-http-header "X: a\x7fb": header value contains a control character`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseHeaders([]string{tt.header}, waits)
+			assert.EqualError(t, err, tt.wantErr)
+			assert.Nil(t, got)
+		})
+	}
+}
+
+func TestParseHeadersAcceptsValidNamesAndValues(t *testing.T) {
+	t.Parallel()
+
+	waits := hostFlagsVar{"http://example.com"}
+	tests := []struct {
+		name   string
+		header string
+		want   HttpHeader
+	}{
+		{name: "simple", header: "X-Foo: bar", want: HttpHeader{name: "X-Foo", value: "bar"}},
+		{name: "value with colons", header: "Authorization: Bearer a:b", want: HttpHeader{name: "Authorization", value: "Bearer a:b"}},
+		{name: "value with tab", header: "X-Tab: a\tb", want: HttpHeader{name: "X-Tab", value: "a\tb"}},
+		{name: "token punctuation in name", header: "X!#$%&'*+-.^_`|~: v", want: HttpHeader{name: "X!#$%&'*+-.^_`|~", value: "v"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseHeaders([]string{tt.header}, waits)
+			require.NoError(t, err)
+			assert.Equal(t, []HttpHeader{tt.want}, got)
+		})
+	}
+}

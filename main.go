@@ -310,13 +310,50 @@ func parseHeaders(values []string, waits hostFlagsVar) ([]HttpHeader, error) {
 			if len(parts) != 2 {
 				return nil, fmt.Errorf(errMsg, h)
 			}
-			headers = append(headers, HttpHeader{name: strings.TrimSpace(parts[0]), value: strings.TrimSpace(parts[1])})
+			name := strings.TrimSpace(parts[0])
+			value := strings.TrimSpace(parts[1])
+			if !validHeaderName(name) {
+				return nil, fmt.Errorf("invalid -wait-http-header %q: header name must be a non-empty HTTP token", h)
+			}
+			if !validHeaderValue(value) {
+				return nil, fmt.Errorf("invalid -wait-http-header %q: header value contains a control character", h)
+			}
+			headers = append(headers, HttpHeader{name: name, value: value})
 			continue
 		}
 		return nil, fmt.Errorf(errMsg, h)
 	}
 	return headers, nil
 }
+
+// validHeaderName reports whether name is a non-empty RFC 7230 token.
+func validHeaderName(name string) bool {
+	if name == "" {
+		return false
+	}
+	for i := 0; i < len(name); i++ {
+		c := name[i]
+		isAlnum := ('0' <= c && c <= '9') || ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')
+		if !isAlnum && strings.IndexByte(headerNameTokenChars, c) < 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// validHeaderValue reports whether value has no control characters other than tab.
+func validHeaderValue(value string) bool {
+	for i := 0; i < len(value); i++ {
+		c := value[i]
+		if (c < 0x20 && c != '\t') || c == 0x7f {
+			return false
+		}
+	}
+	return true
+}
+
+// headerNameTokenChars are the non-alphanumeric characters allowed in an HTTP token.
+const headerNameTokenChars = "!#$%&'*+-.^_`|~"
 
 func parseConfigFromFlags() (Config, error) {
 	parsedDelims, err := parseDelimiters(delimsFlag)
