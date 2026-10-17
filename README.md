@@ -154,6 +154,17 @@ Dockerize gives you the ability to wait for services on a specified protocol (`f
 $ dockerize -wait tcp://db:5432 -wait http://web:80 -wait file:///tmp/generated-file
 ```
 
+Each `-wait` URL must use one of these forms, and dockerize rejects anything else at startup, before it waits on anything:
+
+| Scheme | Accepted form | Example |
+| --- | --- | --- |
+| `tcp`, `tcp4`, `tcp6` | `scheme://host:port` (host and port are both required) | `tcp://db:5432`, `tcp6://[::1]:8080` |
+| `http`, `https` | `scheme://host[:port][/path]` (host is required) | `http://web:80/health` |
+| `file` | `file:///abs/path` (absolute path, no host) | `file:///tmp/generated-file` |
+| `unix` | `unix:///abs/path` (absolute socket path, no host) | `unix:///var/run/docker.sock` |
+
+Relative paths are not accepted: `file://rel/path` is rejected, because `rel` would be read as a host. Use `file:///abs/path` instead.
+
 ### Timeout
 
 You can optionally specify how long to wait for the services to become available by using the `-timeout #` argument (Default: 10 seconds).  If the timeout is reached and the service is still not available, the process exits with status code 1.  The value must be positive when `-wait` is used: `0` or a negative duration is rejected with an error.
