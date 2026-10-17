@@ -408,6 +408,37 @@ func TestWaitForSocketConnectsToTCPServer(t *testing.T) {
 	assert.Contains(t, logs.String(), "Connected to tcp://"+ln.Addr().String())
 }
 
+func TestWaitForFileReturnsWhenFileCreatedAfterDelay(t *testing.T) {
+	readyFile := filepath.Join(t.TempDir(), "ready.txt")
+
+	oldRetry := waitRetryInterval
+	wg = sync.WaitGroup{}
+	waitRetryInterval = 10 * time.Millisecond
+	defer func() {
+		wg = sync.WaitGroup{}
+		waitRetryInterval = oldRetry
+	}()
+
+	go func() {
+		time.Sleep(200 * time.Millisecond)
+		_ = os.WriteFile(readyFile, []byte("ready"), 0o644)
+	}()
+
+	waitForFile(url.URL{Scheme: "file", Path: readyFile})
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for file to be created")
+	}
+}
+
 func TestWaitForDependenciesWaitsForFileAndHTTP(t *testing.T) {
 	tmpDir := t.TempDir()
 	readyFile := filepath.Join(tmpDir, "ready.txt")
