@@ -103,6 +103,9 @@ func jsonQuery(jsonObj string, query string) (any, error) {
 	return res, nil
 }
 
+// loop streams start, start+step, ... while the value is below stop. It takes
+// 1-3 arguments (stop; start, stop; start, stop, step) and returns an error
+// when step is not positive, so an error is returned for loop(5, 0, -1) too.
 func loop(args ...int) (<-chan int, error) {
 	var start, stop, step int
 	switch len(args) {
@@ -115,6 +118,11 @@ func loop(args ...int) (<-chan int, error) {
 	default:
 		return nil, fmt.Errorf("wrong number of arguments, expected 1-3"+
 			", but got %d", len(args))
+	}
+	// A step <= 0 would never advance (or, when negative, run until the int
+	// overflows), so reject it before the producer goroutine starts.
+	if step <= 0 {
+		return nil, fmt.Errorf("loop: step must be positive, got %d", step)
 	}
 
 	c := make(chan int, 16)

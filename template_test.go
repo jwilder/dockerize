@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"text/template"
 )
 
 func TestGenerateFileRendersTemplateFunctions(t *testing.T) {
@@ -295,6 +297,61 @@ func TestGenerateFileWritesFullContentAndKeepsMode(t *testing.T) {
 		if int(st.Uid) != os.Getuid() || int(st.Gid) != os.Getgid() {
 			t.Fatalf("owner mismatch: got %d:%d want %d:%d", st.Uid, st.Gid, os.Getuid(), os.Getgid())
 		}
+	}
+}
+
+func TestLoopRejectsNonPositiveStep(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		args  []int
+		wantE string
+	}{
+		{name: "zero step", args: []int{0, 5, 0}, wantE: "loop: step must be positive, got 0"},
+		{name: "negative step", args: []int{0, 5, -1}, wantE: "loop: step must be positive, got -1"},
+		{name: "negative step with start above stop", args: []int{5, 0, -1}, wantE: "loop: step must be positive, got -1"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ch, err := loop(tt.args...)
+			if err == nil {
+				t.Fatalf("loop(%v) returned no error (channel %v), want error containing %q", tt.args, ch, tt.wantE)
+			}
+			if err.Error() != tt.wantE {
+				t.Fatalf("loop(%v) error = %q, want %q", tt.args, err.Error(), tt.wantE)
+			}
+		})
+	}
+}
+
+// limitedWriter fails once more than limit bytes are written, so a template
+// that would otherwise stream forever stops with an error.
+type limitedWriter struct {
+	limit   int
+	written int
+}
+
+func (w *limitedWriter) Write(p []byte) (int, error) {
+	w.written += len(p)
+	if w.written > w.limit {
+		return 0, errors.New("output limit reached")
+	}
+	return len(p), nil
+}
+
+func TestTemplateRangeOverNonPositiveStepFails(t *testing.T) {
+	t.Parallel()
+
+	tmpl, err := template.New("loop").Funcs(templateFuncMap()).Parse("{{range loop 0 5 0}}x{{end}}")
+	if err != nil {
+		t.Fatalf("parse template: %v", err)
+	}
+
+	err = tmpl.Execute(&limitedWriter{limit: 1024}, nil)
+	const wantE = "loop: step must be positive, got 0"
+	if err == nil || !strings.Contains(err.Error(), wantE) {
+		t.Fatalf("Execute error = %v, want error containing %q", err, wantE)
 	}
 }
 
