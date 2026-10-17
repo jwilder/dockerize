@@ -170,6 +170,7 @@ func waitForHTTP(u url.URL) {
 			if err != nil {
 				log.Printf("Problem creating request for %s: %v. Sleeping %s\n", u.String(), err.Error(), waitRetryInterval)
 				time.Sleep(waitRetryInterval)
+				continue
 			}
 			if len(headers) > 0 {
 				for _, header := range headers {
