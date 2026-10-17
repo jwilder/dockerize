@@ -282,7 +282,20 @@ func parseDelimiters(value string) ([]string, error) {
 	if len(delims) != 2 {
 		return nil, fmt.Errorf("bad delimiters argument: %s. expected \"left:right\"", value)
 	}
+	if delims[0] == "" || delims[1] == "" {
+		return nil, fmt.Errorf("invalid -delims \"%s\": both delimiters must be non-empty, expected \"left:right\"", value)
+	}
 	return delims, nil
+}
+
+// validateTemplateSpec rejects a "template:" spec with an empty destination.
+// processTemplates would otherwise write it to stdout without saying so.
+func validateTemplateSpec(spec string) error {
+	_, dest, found := strings.Cut(spec, ":")
+	if found && dest == "" {
+		return fmt.Errorf("invalid -template \"%s\": missing destination after ':', drop the ':' to write to stdout", spec)
+	}
+	return nil
 }
 
 // supportedWaitSchemes lists the -wait URL schemes waitForDependencies handles.
@@ -393,6 +406,12 @@ func parseConfigFromFlags() (Config, error) {
 	parsedDelims, err := parseDelimiters(delimsFlag)
 	if err != nil {
 		return Config{}, err
+	}
+
+	for _, spec := range templatesFlag {
+		if err := validateTemplateSpec(spec); err != nil {
+			return Config{}, err
+		}
 	}
 
 	parsedURLs, err := parseWaitURLs(waitFlag)

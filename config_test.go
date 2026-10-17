@@ -246,6 +246,38 @@ func TestParseConfigFromFlagsRestoresCommandLine(t *testing.T) {
 	assert.Same(t, before, flag.CommandLine)
 }
 
+func TestParseConfigFromFlagsRejectsEmptyDelimiters(t *testing.T) {
+	for _, value := range []string{":", "a:", ":b"} {
+		t.Run(value, func(t *testing.T) {
+			cfg, err := parseFlagsForTest(t, []string{"-delims", value})
+			assert.EqualError(t, err, `invalid -delims "`+value+`": both delimiters must be non-empty, expected "left:right"`)
+			assert.Equal(t, Config{}, cfg)
+		})
+	}
+
+	t.Run("accepts non-empty delimiters", func(t *testing.T) {
+		cfg, err := parseFlagsForTest(t, []string{"-delims", "<%:%>"})
+		require.NoError(t, err)
+		assert.Equal(t, []string{"<%", "%>"}, cfg.delims)
+	})
+}
+
+func TestParseConfigFromFlagsTemplateSpecs(t *testing.T) {
+	t.Run("rejects empty destination", func(t *testing.T) {
+		cfg, err := parseFlagsForTest(t, []string{"-template", "a:"})
+		assert.EqualError(t, err, `invalid -template "a:": missing destination after ':', drop the ':' to write to stdout`)
+		assert.Equal(t, Config{}, cfg)
+	})
+
+	for _, spec := range []string{"a", "a:b"} {
+		t.Run("accepts "+spec, func(t *testing.T) {
+			cfg, err := parseFlagsForTest(t, []string{"-template", spec})
+			require.NoError(t, err)
+			assert.Equal(t, []string{spec}, cfg.templates)
+		})
+	}
+}
+
 func TestStartCommandRunsCommand(t *testing.T) {
 	resetGlobals(t)
 	oldCommandLine := flag.CommandLine
