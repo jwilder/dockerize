@@ -25,16 +25,24 @@ func TestMain(m *testing.M) {
 
 func TestSliceVarString(t *testing.T) {
 	var sv sliceVar
-	sv.Set("test1")
-	sv.Set("test2")
+	if err := sv.Set("test1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := sv.Set("test2"); err != nil {
+		t.Fatal(err)
+	}
 	result := sv.String()
 	assert.Equal(t, "test1,test2", result)
 }
 
 func TestHostFlagsVarString(t *testing.T) {
 	var hf hostFlagsVar
-	hf.Set("host1")
-	hf.Set("host2")
+	if err := hf.Set("host1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := hf.Set("host2"); err != nil {
+		t.Fatal(err)
+	}
 	result := hf.String()
 	assert.Equal(t, "[host1 host2]", result)
 }
@@ -42,7 +50,7 @@ func TestHostFlagsVarString(t *testing.T) {
 func TestExists(t *testing.T) {
 	tempFile, err := os.CreateTemp("", "test-exists")
 	assert.NoError(t, err)
-	defer os.Remove(tempFile.Name())
+	t.Cleanup(func() { _ = os.Remove(tempFile.Name()) })
 
 	existsResult, err := exists(tempFile.Name())
 	assert.NoError(t, err)
@@ -319,7 +327,7 @@ func TestWaitForSocketUsesPassedTimeoutForDial(t *testing.T) {
 	dialTimeout = func(network, address string, timeout time.Duration) (net.Conn, error) {
 		timeoutArg <- timeout
 		client, server := net.Pipe()
-		go server.Close()
+		go func() { _ = server.Close() }()
 		return client, nil
 	}
 
@@ -348,7 +356,7 @@ func TestWaitForSocketUsesPassedTimeoutForDial(t *testing.T) {
 func TestWaitForSocketConnectsToTCPServer(t *testing.T) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	assert.NoError(t, err)
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 
 	var logs bytes.Buffer
 	oldLogWriter := log.Writer()
@@ -373,7 +381,7 @@ func TestWaitForSocketConnectsToTCPServer(t *testing.T) {
 		defer close(acceptDone)
 		conn, err := ln.Accept()
 		if err == nil {
-			conn.Close()
+			_ = conn.Close()
 		}
 	}()
 
