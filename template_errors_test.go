@@ -116,6 +116,87 @@ func TestTemplateFatalPaths(t *testing.T) {
 	}
 }
 
+// fixtureDirEnv passes a parent-built fixture directory to a re-executed child process.
+const fixtureDirEnv = "DOCKERIZE_TEST_FIXTURE_DIR"
+
+// A render that fails part way must leave the existing destination untouched and no temp files behind.
+func TestProcessTemplatesFailedRenderKeepsDestination(t *testing.T) {
+	const caseName = "failed-render-keeps-dest"
+	if fatalCase(caseName) {
+		dir := os.Getenv(fixtureDirEnv)
+		processTemplates([]string{filepath.Join(dir, "bad.tmpl") + ":" + filepath.Join(dir, "out.conf")})
+		return
+	}
+
+	dir := t.TempDir()
+	const original = "original contents\n"
+	writeTemplateFile(t, dir, "out.conf", original)
+	// Output is written before the add call fails, so a render that streams into the file would leave a partial file.
+	writeTemplateFile(t, dir, "bad.tmpl", `partial output {{ add "a" 1 }}`)
+	t.Setenv(fixtureDirEnv, dir)
+
+	exitCode, stderr := runFatalCase(t, "TestProcessTemplatesFailedRenderKeepsDestination", caseName)
+	assert.Equal(t, 1, exitCode)
+	assert.Contains(t, stderr, "template error")
+
+	got, err := os.ReadFile(filepath.Join(dir, "out.conf"))
+	require.NoError(t, err)
+	assert.Equal(t, original, string(got))
+
+	entries, err := os.ReadDir(dir)
+	require.NoError(t, err)
+	var names []string
+	for _, e := range entries {
+		names = append(names, e.Name())
+	}
+	assert.ElementsMatch(t, []string{"bad.tmpl", "out.conf"}, names)
+}
+
+// A template dir that contains a subdirectory renders its files and skips the subdirectory.
+func TestProcessTemplatesSkipsSubdirectory(t *testing.T) {
+	const caseName = "skips-subdirectory"
+	if fatalCase(caseName) {
+		dir := os.Getenv(fixtureDirEnv)
+		processTemplates([]string{filepath.Join(dir, "tmpl") + ":" + filepath.Join(dir, "out")})
+		return
+	}
+
+	dir := t.TempDir()
+	tmplDir := filepath.Join(dir, "tmpl")
+	require.NoError(t, os.MkdirAll(filepath.Join(tmplDir, "sub"), 0o755))
+	writeTemplateFile(t, tmplDir, "a.conf", `hello {{ lower "WORLD" }}`)
+	require.NoError(t, os.Mkdir(filepath.Join(dir, "out"), 0o755))
+	t.Setenv(fixtureDirEnv, dir)
+
+	exitCode, stderr := runFatalCase(t, "TestProcessTemplatesSkipsSubdirectory", caseName)
+	assert.Equal(t, 0, exitCode, stderr)
+
+	got, err := os.ReadFile(filepath.Join(dir, "out", "a.conf"))
+	require.NoError(t, err)
+	assert.Equal(t, "hello world", string(got))
+}
+
+// Rewriting an existing destination keeps its file mode.
+func TestProcessTemplatesKeepsExistingMode(t *testing.T) {
+	resetGlobals(t)
+	delims = nil
+	noOverwriteFlag = false
+
+	tempDir := t.TempDir()
+	src := writeTemplateFile(t, tempDir, "config.tmpl", "new")
+	dest := writeTemplateFile(t, tempDir, "out.conf", "old")
+	require.NoError(t, os.Chmod(dest, 0o600))
+
+	processTemplates([]string{src + ":" + dest})
+
+	fi, err := os.Stat(dest)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0o600), fi.Mode().Perm())
+	got, err := os.ReadFile(dest)
+	require.NoError(t, err)
+	assert.Equal(t, "new", string(got))
+}
+
 func TestParseUrlBadURLReturnsError(t *testing.T) {
 	t.Parallel()
 
