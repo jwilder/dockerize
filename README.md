@@ -99,7 +99,7 @@ $ dockerize -template template1.tmpl
 ```
 
 Template may also be a directory. In this case all files within this directory are processed as template and stored with the same name in the destination directory.
-If the destination directory is omitted, the output is sent to `STDOUT`. The files in the source directory are processed in sorted order (as returned by `ioutil.ReadDir`).
+If the destination directory is omitted, the output is sent to `STDOUT`. The files in the source directory are processed in sorted order (as returned by `os.ReadDir`).
 
 ```
 $ dockerize -template src_dir:dest_dir
@@ -182,10 +182,10 @@ variables within a template with `.Env`.
 There are a few built-in functions as well:
 
   * `default $var $default` - Returns a default value for one that does not exist. `{{ default .Env.VERSION "0.1.2" }}`
-  * `contains $map $key` - Returns true if a string is within another string
+  * `contains $map $key` - Returns true if the map contains the key. `{{ if contains .Env "HOME" }}`
   * `exists $path` - Determines if a file path exists or not. `{{ exists "/etc/default/myapp" }}`
   * `split $string $sep` - Splits a string into an array using a separator string. Alias for [`strings.Split`][go.string.Split]. `{{ split .Env.PATH ":" }}`
-  * `replace $string $old $new $count` - Replaces all occurrences of a string within another string. Alias for [`strings.Replace`][go.string.Replace]. `{{ replace .Env.PATH ":" }}`
+  * `replace $string $old $new $count` - Replaces all occurrences of a string within another string. Alias for [`strings.Replace`][go.string.Replace]. Use `-1` for `$count` to replace all occurrences. `{{ replace .Env.PATH ":" ";" -1 }}`
   * `parseUrl $url` - Parses a URL into it's [protocol, scheme, host, etc. parts][go.url.URL]. Alias for [`url.Parse`][go.url.Parse]
   * `atoi $value` - Parses a string $value into an int. `{{ if (gt (atoi .Env.NUM_THREADS) 1) }}`
   * `add $arg1 $arg` - Performs integer addition. `{{ add (atoi .Env.SHARD_NUM) -1 }}`
