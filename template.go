@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"log"
@@ -175,35 +176,77 @@ func generateFile(templatePath, destPath string) bool {
 		return false
 	}
 
-	dest := os.Stdout
-	if destPath != "" {
-		dest, err = os.Create(destPath)
-		if err != nil {
-			log.Fatalf("unable to create %s, error: %s", destPath, err)
-		}
-	}
-
-	err = tmpl.ExecuteTemplate(dest, filepath.Base(templatePath), &Context{})
+	// Render into memory first so a failed render never touches the destination.
+	var out bytes.Buffer
+	err = tmpl.ExecuteTemplate(&out, filepath.Base(templatePath), &Context{})
 	if err != nil {
 		log.Fatalf("template error %s, error: %s\n", templatePath, err)
 	}
 
-	if fi, err := os.Stat(destPath); err == nil {
-		if err := dest.Chmod(fi.Mode()); err != nil {
-			log.Fatalf("unable to chmod temp file %s: %s\n", destPath, err)
+	if destPath == "" {
+		if _, err := out.WriteTo(os.Stdout); err != nil {
+			log.Fatalf("unable to write to stdout, error: %s", err)
 		}
-		if err := dest.Chown(int(fi.Sys().(*syscall.Stat_t).Uid), int(fi.Sys().(*syscall.Stat_t).Gid)); err != nil {
-			log.Fatalf("unable to chown temp file %s: %s\n", destPath, err)
-		}
+		return true
 	}
 
-	if destPath != "" {
-		if err := dest.Close(); err != nil {
-			log.Fatalf("unable to close %s: %s", destPath, err)
-		}
+	if err := writeFileAtomic(destPath, out.Bytes()); err != nil {
+		log.Fatalf("unable to write %s, error: %s", destPath, err)
 	}
 
 	return true
+}
+
+// writeFileAtomic replaces destPath with data. It writes a temp file in the same
+// directory and renames it over destPath, so a reader never sees a partial file.
+// An existing destPath keeps its mode and owner; a new file gets 0666 masked by
+// the umask, as os.Create would give it.
+func writeFileAtomic(destPath string, data []byte) error {
+	mode := os.FileMode(0o666) &^ currentUmask()
+	uid, gid := -1, -1 // -1 leaves the owner unchanged
+
+	fi, err := os.Stat(destPath)
+	switch {
+	case err == nil:
+		mode = fi.Mode()
+		st := fi.Sys().(*syscall.Stat_t)
+		uid, gid = int(st.Uid), int(st.Gid)
+	case !errors.Is(err, os.ErrNotExist):
+		return fmt.Errorf("unable to stat %s: %w", destPath, err)
+	}
+
+	tmp, err := os.CreateTemp(filepath.Dir(destPath), "."+filepath.Base(destPath)+".tmp-*")
+	if err != nil {
+		return fmt.Errorf("unable to create temp file for %s: %w", destPath, err)
+	}
+	// Removes the temp file on any failure. After a successful rename the name is gone and this is a no-op.
+	defer os.Remove(tmp.Name())
+
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return fmt.Errorf("unable to write temp file %s: %w", tmp.Name(), err)
+	}
+	if err := tmp.Chmod(mode); err != nil {
+		tmp.Close()
+		return fmt.Errorf("unable to chmod temp file %s: %w", tmp.Name(), err)
+	}
+	if err := tmp.Chown(uid, gid); err != nil {
+		tmp.Close()
+		return fmt.Errorf("unable to chown temp file %s: %w", tmp.Name(), err)
+	}
+	if err := tmp.Close(); err != nil {
+		return fmt.Errorf("unable to close temp file %s: %w", tmp.Name(), err)
+	}
+
+	return os.Rename(tmp.Name(), destPath)
+}
+
+// currentUmask returns the process umask. syscall.Umask has no getter, so it
+// sets a zero mask and restores the old one.
+func currentUmask() os.FileMode {
+	m := syscall.Umask(0)
+	syscall.Umask(m)
+	return os.FileMode(m)
 }
 
 func generateDir(templateDir, destDir string) bool {
@@ -223,6 +266,10 @@ func generateDir(templateDir, destDir string) bool {
 	}
 
 	for _, file := range files {
+		if file.IsDir() {
+			log.Printf("skipping directory %s in template dir %s", file.Name(), templateDir)
+			continue
+		}
 		if destDir == "" {
 			generateFile(filepath.Join(templateDir, file.Name()), "")
 		} else {
