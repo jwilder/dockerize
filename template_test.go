@@ -367,3 +367,50 @@ func TestGenerateFileRendersReadmeExamples(t *testing.T) {
 		t.Fatalf("rendered output mismatch: got %q want %q", string(got), want)
 	}
 }
+
+func TestGenerateFileRendersJSONQueryReadmeExample(t *testing.T) {
+	oldDelims := delims
+	oldNoOverwrite := noOverwriteFlag
+	defer func() {
+		delims = oldDelims
+		noOverwriteFlag = oldNoOverwrite
+	}()
+
+	delims = nil
+	noOverwriteFlag = false
+
+	t.Setenv("SERVICES", `{
+  "services": [
+    {
+      "name": "service1",
+      "port": 8000
+    },{
+      "name": "service2",
+      "port": 9000
+    }
+  ]
+}`)
+
+	tempDir := t.TempDir()
+	templatePath := filepath.Join(tempDir, "jsonquery.tmpl")
+	destPath := filepath.Join(tempDir, "jsonquery.out")
+
+	templateContent := `{{ jsonQuery .Env.SERVICES "services\\.[1]\\.port" }}`
+	if err := os.WriteFile(templatePath, []byte(templateContent), 0o644); err != nil {
+		t.Fatalf("write template: %v", err)
+	}
+
+	if ok := generateFile(templatePath, destPath); !ok {
+		t.Fatalf("generateFile returned false")
+	}
+
+	got, err := os.ReadFile(destPath)
+	if err != nil {
+		t.Fatalf("read rendered file: %v", err)
+	}
+
+	want := "9000"
+	if string(got) != want {
+		t.Fatalf("rendered output mismatch: got %q want %q", string(got), want)
+	}
+}
