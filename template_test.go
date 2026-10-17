@@ -140,7 +140,13 @@ func TestGenerateFileDefaultDoesNotPanicOnNonStringValue(t *testing.T) {
 }
 
 func TestExistsErrorIncludesFilePath(t *testing.T) {
-	missingPath := filepath.Join("/proc", "1", "fd", "does-not-exist", "child")
+	// A path through a regular file fails with ENOTDIR rather than ENOENT,
+	// regardless of the user running the test.
+	file := filepath.Join(t.TempDir(), "file")
+	if err := os.WriteFile(file, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	missingPath := filepath.Join(file, "child")
 
 	_, err := exists(missingPath)
 	if err == nil {
