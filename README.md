@@ -138,6 +138,12 @@ Http headers can be specified for http/https protocols.
 $ dockerize -wait http://web:80 -wait-http-header "Authorization:Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ=="
 ```
 
+Use `-version` to show the version and exit.
+
+```
+$ dockerize -version
+```
+
 ## Waiting for other dependencies
 
 It is common when using tools like [Docker Compose](https://docs.docker.com/compose/) to depend on services in other linked containers, however oftentimes relying on [links](https://docs.docker.com/compose/compose-file/#links) is not enough - whilst the container itself may have _started_, the _service(s)_ within it may not yet be ready - resulting in shell script hacks to work around race conditions.
@@ -154,6 +160,12 @@ You can optionally specify how long to wait for the services to become available
 
 ```
 $ dockerize -wait tcp://db:5432 -wait http://web:80 -timeout 10s
+```
+
+By default dockerize waits 1s between connection attempts. Use `-wait-retry-interval` to change this, for example to retry less often against a slow service.
+
+```
+$ dockerize -wait tcp://db:5432 -timeout 30s -wait-retry-interval 2s
 ```
 
 See [this issue](https://github.com/docker/compose/issues/374#issuecomment-126312313) for a deeper discussion, and why support isn't and won't be available in the Docker ecosystem itself.
