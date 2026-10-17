@@ -138,9 +138,7 @@ func waitForDependencies() {
 }
 
 func waitForFile(u url.URL) {
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		ticker := time.NewTicker(waitRetryInterval)
 		defer ticker.Stop()
 		var err error
@@ -158,17 +156,15 @@ func waitForFile(u url.URL) {
 				log.Printf("Problem with check file %s exist: %v. Sleeping %s\n", u.String(), err.Error(), waitRetryInterval)
 			}
 		}
-	}()
+	})
 }
 
 func waitForHTTP(u url.URL) {
-	wg.Add(1)
-	go func() {
+	wg.Go(func() {
 		client := &http.Client{
 			Timeout: waitTimeoutFlag,
 		}
 
-		defer wg.Done()
 		for {
 			req, err := http.NewRequest("GET", u.String(), nil)
 			if err != nil {
@@ -195,13 +191,11 @@ func waitForHTTP(u url.URL) {
 				time.Sleep(waitRetryInterval)
 			}
 		}
-	}()
+	})
 }
 
 func waitForSocket(scheme, addr string, timeout time.Duration) {
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		for {
 			conn, err := dialTimeout(scheme, addr, timeout)
 			if err != nil {
@@ -214,7 +208,7 @@ func waitForSocket(scheme, addr string, timeout time.Duration) {
 				return
 			}
 		}
-	}()
+	})
 }
 
 func usage() {

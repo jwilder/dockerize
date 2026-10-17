@@ -30,10 +30,7 @@ func runCmd(ctx context.Context, cancel context.CancelFunc, cmd string, args ...
 	signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM)
 	waitDone := make(chan struct{})
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-
+	wg.Go(func() {
 		select {
 		case sig := <-sigs:
 			log.Printf("Received signal: %s\n", sig)
@@ -42,7 +39,7 @@ func runCmd(ctx context.Context, cancel context.CancelFunc, cmd string, args ...
 		case <-ctx.Done():
 			// exit when context is done
 		}
-	}()
+	})
 
 	err = process.Wait()
 	close(waitDone)
