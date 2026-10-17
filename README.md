@@ -203,21 +203,21 @@ Objects and fields are accessed by name. Array elements are accessed by index in
 
 With the following JSON in `.Env.SERVICES`
 
-```
+```json
 {
   "services": [
     {
       "name": "service1",
-      "port": 8000,
+      "port": 8000
     },{
       "name": "service2",
-      "port": 9000,
+      "port": 9000
     }
   ]
 }
 ```
 
-the template expression `jsonQuery .Env.SERVICES "services.[1].port"` returns `9000`.
+the template expression `jsonQuery .Env.SERVICES "services\\.[1]\\.port"` returns `9000`. The dots between path elements are escaped (`\\.`) because the query parser splits on `\.`; an unescaped `.` is not treated as a separator.
 
 ### loop
 
