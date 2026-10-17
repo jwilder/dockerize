@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"time"
@@ -10,7 +11,7 @@ import (
 	"github.com/hpcloud/tail"
 )
 
-func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
+func tailFile(ctx context.Context, file string, poll bool, dest io.Writer) {
 	defer wg.Done()
 
 	var isPipe bool
@@ -37,7 +38,9 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 	}
 
 	defer func() {
-		t.Stop()
+		if err := t.Stop(); err != nil {
+			log.Printf("Warning: unable to stop tailing %s: %s", file, err)
+		}
 		t.Cleanup()
 	}()
 
@@ -62,7 +65,11 @@ func tailFile(ctx context.Context, file string, poll bool, dest *os.File) {
 				}
 				return
 			} else {
-				fmt.Fprintln(dest, line.Text)
+				if _, err := fmt.Fprintln(dest, line.Text); err != nil {
+					// a broken destination won't recover, so stop tailing this file
+					log.Printf("unable to write tailed line from %s: %s", file, err)
+					return
+				}
 				errCount = 0 // Zero the error count
 			}
 		}
