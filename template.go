@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"maps"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -126,7 +127,9 @@ func loop(args ...int) (<-chan int, error) {
 	return c, nil
 }
 
-func generateFile(templatePath, destPath string) bool {
+// templateFuncMap returns sprig's functions with dockerize's own functions
+// merged over them, so a dockerize function wins when both define the same name.
+func templateFuncMap() template.FuncMap {
 	templateMap := template.FuncMap{
 		"contains":  contains,
 		"exists":    exists,
@@ -144,10 +147,12 @@ func generateFile(templatePath, destPath string) bool {
 	}
 
 	combinedFuncMap := sprig.TxtFuncMap()
-	for k, v := range templateMap {
-		combinedFuncMap[k] = v
-	}
-	tmpl := template.New(filepath.Base(templatePath)).Funcs(combinedFuncMap)
+	maps.Copy(combinedFuncMap, templateMap)
+	return combinedFuncMap
+}
+
+func generateFile(templatePath, destPath string) bool {
+	tmpl := template.New(filepath.Base(templatePath)).Funcs(templateFuncMap())
 
 	if len(delims) > 0 {
 		tmpl = tmpl.Delims(delims[0], delims[1])

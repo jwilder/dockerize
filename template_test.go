@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"reflect"
+	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -316,6 +318,35 @@ func TestGenerateFileWritesFullContentAndKeepsMode(t *testing.T) {
 	if st, ok := fi.Sys().(*syscall.Stat_t); ok {
 		if int(st.Uid) != os.Getuid() || int(st.Gid) != os.Getgid() {
 			t.Fatalf("owner mismatch: got %d:%d want %d:%d", st.Uid, st.Gid, os.Getuid(), os.Getgid())
+		}
+	}
+}
+
+func TestTemplateFuncMapDockerizeOverridesSprig(t *testing.T) {
+	merged := templateFuncMap()
+
+	dockerizeFuncs := map[string]any{
+		"contains":  contains,
+		"exists":    exists,
+		"split":     strings.Split,
+		"replace":   strings.Replace,
+		"default":   defaultValue,
+		"parseUrl":  parseUrl,
+		"atoi":      strconv.Atoi,
+		"add":       add,
+		"isTrue":    isTrue,
+		"lower":     strings.ToLower,
+		"upper":     strings.ToUpper,
+		"jsonQuery": jsonQuery,
+		"loop":      loop,
+	}
+	for name, fn := range dockerizeFuncs {
+		got, ok := merged[name]
+		if !ok {
+			t.Fatalf("%s missing from merged func map", name)
+		}
+		if reflect.ValueOf(got).Pointer() != reflect.ValueOf(fn).Pointer() {
+			t.Errorf("%s: merged map does not hold dockerize's function", name)
 		}
 	}
 }
