@@ -220,18 +220,18 @@ func writeFileAtomic(destPath string, data []byte) error {
 		return fmt.Errorf("unable to create temp file for %s: %w", destPath, err)
 	}
 	// Removes the temp file on any failure. After a successful rename the name is gone and this is a no-op.
-	defer os.Remove(tmp.Name())
+	defer func() { _ = os.Remove(tmp.Name()) }()
 
 	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		return fmt.Errorf("unable to write temp file %s: %w", tmp.Name(), err)
 	}
 	if err := tmp.Chmod(mode); err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		return fmt.Errorf("unable to chmod temp file %s: %w", tmp.Name(), err)
 	}
 	if err := tmp.Chown(uid, gid); err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		return fmt.Errorf("unable to chown temp file %s: %w", tmp.Name(), err)
 	}
 	if err := tmp.Close(); err != nil {
