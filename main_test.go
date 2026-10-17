@@ -24,6 +24,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestSliceVarString(t *testing.T) {
+	t.Parallel()
+
 	var sv sliceVar
 	if err := sv.Set("test1"); err != nil {
 		t.Fatal(err)
@@ -36,6 +38,8 @@ func TestSliceVarString(t *testing.T) {
 }
 
 func TestHostFlagsVarString(t *testing.T) {
+	t.Parallel()
+
 	var hf hostFlagsVar
 	if err := hf.Set("host1"); err != nil {
 		t.Fatal(err)
@@ -48,6 +52,8 @@ func TestHostFlagsVarString(t *testing.T) {
 }
 
 func TestExists(t *testing.T) {
+	t.Parallel()
+
 	tempFile, err := os.CreateTemp("", "test-exists")
 	assert.NoError(t, err)
 	t.Cleanup(func() { _ = os.Remove(tempFile.Name()) })
@@ -63,6 +69,8 @@ func TestExists(t *testing.T) {
 }
 
 func TestContains(t *testing.T) {
+	t.Parallel()
+
 	testMap := map[string]string{
 		"key1": "value1",
 		"key2": "value2",
@@ -74,6 +82,8 @@ func TestContains(t *testing.T) {
 }
 
 func TestContextEnvReturnsCurrentEnvironment(t *testing.T) {
+	t.Parallel()
+
 	ctx := &Context{}
 	env := ctx.Env()
 	expected := make(map[string]string)
@@ -96,6 +106,8 @@ func TestContextEnvReturnsCurrentEnvironment(t *testing.T) {
 }
 
 func TestDefaultValue(t *testing.T) {
+	t.Parallel()
+
 	result, err := defaultValue("test-value")
 	assert.NoError(t, err)
 	assert.Equal(t, "test-value", result)
@@ -116,6 +128,8 @@ func TestDefaultValue(t *testing.T) {
 }
 
 func TestParseUrl(t *testing.T) {
+	t.Parallel()
+
 	url := parseUrl("http://example.com/path")
 	assert.Equal(t, "http", url.Scheme)
 	assert.Equal(t, "example.com", url.Host)
@@ -128,6 +142,8 @@ func TestParseUrl(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
+	t.Parallel()
+
 	result := add(5, 3)
 	assert.Equal(t, 8, result)
 
@@ -139,6 +155,8 @@ func TestAdd(t *testing.T) {
 }
 
 func TestIsTrue(t *testing.T) {
+	t.Parallel()
+
 	assert.True(t, isTrue("true"))
 	assert.True(t, isTrue("TRUE"))
 	assert.True(t, isTrue("1"))
@@ -155,6 +173,8 @@ func TestIsTrue(t *testing.T) {
 }
 
 func TestLoop(t *testing.T) {
+	t.Parallel()
+
 	ch, err := loop(3)
 	assert.NoError(t, err)
 
@@ -190,6 +210,8 @@ func TestLoop(t *testing.T) {
 }
 
 func TestParseDelimiters(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		input   string
@@ -219,6 +241,8 @@ func TestParseDelimiters(t *testing.T) {
 }
 
 func TestParseWaitURLs(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		input   hostFlagsVar
@@ -254,6 +278,8 @@ func TestParseWaitURLs(t *testing.T) {
 }
 
 func TestParseHeaders(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		values  []string
@@ -292,6 +318,8 @@ func TestParseHeaders(t *testing.T) {
 }
 
 func TestProcessTemplatesFileAndDirectoryArguments(t *testing.T) {
+	resetGlobals(t)
+
 	fileTemplateDir := t.TempDir()
 	filePath := filepath.Join(fileTemplateDir, "source.tmpl")
 	fileDest := filepath.Join(fileTemplateDir, "out.txt")
@@ -310,18 +338,9 @@ func TestProcessTemplatesFileAndDirectoryArguments(t *testing.T) {
 }
 
 func TestWaitForSocketUsesPassedTimeoutForDial(t *testing.T) {
-	oldDialTimeout := dialTimeout
-	oldTimeout := waitTimeoutFlag
-	oldRetry := waitRetryInterval
-	wg = sync.WaitGroup{}
+	resetGlobals(t)
 	waitTimeoutFlag = 200 * time.Millisecond
 	waitRetryInterval = 10 * time.Millisecond
-	defer func() {
-		dialTimeout = oldDialTimeout
-		waitTimeoutFlag = oldTimeout
-		waitRetryInterval = oldRetry
-		wg = sync.WaitGroup{}
-	}()
 
 	timeoutArg := make(chan time.Duration, 1)
 	dialTimeout = func(network, address string, timeout time.Duration) (net.Conn, error) {
@@ -363,18 +382,9 @@ func TestWaitForSocketConnectsToTCPServer(t *testing.T) {
 	log.SetOutput(&logs)
 	defer log.SetOutput(oldLogWriter)
 
-	oldRetry := waitRetryInterval
-	oldTimeout := waitTimeoutFlag
-	oldDialTimeout := dialTimeout
-	wg = sync.WaitGroup{}
+	resetGlobals(t)
 	waitRetryInterval = 10 * time.Millisecond
 	waitTimeoutFlag = 200 * time.Millisecond
-	defer func() {
-		wg = sync.WaitGroup{}
-		waitRetryInterval = oldRetry
-		waitTimeoutFlag = oldTimeout
-		dialTimeout = oldDialTimeout
-	}()
 
 	acceptDone := make(chan struct{})
 	go func() {
@@ -457,6 +467,8 @@ func TestWaitForDependenciesWaitsForFileAndHTTP(t *testing.T) {
 		requestCount++
 		seenHeader = r.Header.Get("X-Test")
 		if requestCount == 1 {
+			// Make the file dependency ready only once the HTTP dependency has been hit.
+			_ = os.WriteFile(readyFile, []byte("ready"), 0o644)
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
@@ -468,30 +480,12 @@ func TestWaitForDependenciesWaitsForFileAndHTTP(t *testing.T) {
 	assert.NoError(t, err)
 	fileURL := url.URL{Scheme: "file", Path: readyFile}
 
-	oldURLs := urls
-	oldHeaders := headers
-	oldWaitFlag := waitFlag
-	oldRetry := waitRetryInterval
-	oldTimeout := waitTimeoutFlag
+	resetGlobals(t)
 	urls = []url.URL{fileURL, *httpURL}
 	headers = []HttpHeader{{name: "X-Test", value: "value"}}
 	waitFlag = hostFlagsVar{"file://" + readyFile, server.URL}
-	wg = sync.WaitGroup{}
 	waitRetryInterval = 10 * time.Millisecond
-	waitTimeoutFlag = time.Second
-	defer func() {
-		urls = oldURLs
-		headers = oldHeaders
-		waitFlag = oldWaitFlag
-		wg = sync.WaitGroup{}
-		waitRetryInterval = oldRetry
-		waitTimeoutFlag = oldTimeout
-	}()
-
-	go func() {
-		time.Sleep(30 * time.Millisecond)
-		_ = os.WriteFile(readyFile, []byte("ready"), 0o644)
-	}()
+	waitTimeoutFlag = 10 * time.Second
 
 	waitForDependencies()
 
@@ -503,6 +497,8 @@ func TestWaitForDependenciesWaitsForFileAndHTTP(t *testing.T) {
 }
 
 func TestSignalProcessWithTimeoutPassesSignal(t *testing.T) {
+	t.Parallel()
+
 	cmd := exec.Command("sh", "-c", "sleep 10")
 	err := cmd.Start()
 	assert.NoError(t, err)
@@ -515,13 +511,10 @@ func TestSignalProcessWithTimeoutPassesSignal(t *testing.T) {
 }
 
 func TestRunCmdCancelsContextWhenCommandExits(t *testing.T) {
+	resetGlobals(t)
+
 	ctx, cancelFn := context.WithCancel(context.Background())
 	defer cancelFn()
-
-	wg = sync.WaitGroup{}
-	defer func() {
-		wg = sync.WaitGroup{}
-	}()
 
 	wg.Add(1)
 	go runCmd(ctx, cancelFn, "sh", "-c", "exit 0")

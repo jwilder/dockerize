@@ -11,13 +11,7 @@ import (
 )
 
 func TestGenerateFileRendersTemplateFunctions(t *testing.T) {
-	oldDelims := delims
-	oldNoOverwrite := noOverwriteFlag
-	defer func() {
-		delims = oldDelims
-		noOverwriteFlag = oldNoOverwrite
-	}()
-
+	resetGlobals(t)
 	delims = nil
 	noOverwriteFlag = false
 
@@ -46,13 +40,7 @@ func TestGenerateFileRendersTemplateFunctions(t *testing.T) {
 }
 
 func TestGenerateFileUsesCustomDelimiters(t *testing.T) {
-	oldDelims := delims
-	oldNoOverwrite := noOverwriteFlag
-	defer func() {
-		delims = oldDelims
-		noOverwriteFlag = oldNoOverwrite
-	}()
-
+	resetGlobals(t)
 	delims = []string{"[[", "]]"}
 	noOverwriteFlag = false
 
@@ -79,13 +67,7 @@ func TestGenerateFileUsesCustomDelimiters(t *testing.T) {
 }
 
 func TestGenerateFileNoOverwrite(t *testing.T) {
-	oldDelims := delims
-	oldNoOverwrite := noOverwriteFlag
-	defer func() {
-		delims = oldDelims
-		noOverwriteFlag = oldNoOverwrite
-	}()
-
+	resetGlobals(t)
 	delims = nil
 	noOverwriteFlag = true
 
@@ -115,13 +97,7 @@ func TestGenerateFileNoOverwrite(t *testing.T) {
 }
 
 func TestGenerateFileDefaultDoesNotPanicOnNonStringValue(t *testing.T) {
-	oldDelims := delims
-	oldNoOverwrite := noOverwriteFlag
-	defer func() {
-		delims = oldDelims
-		noOverwriteFlag = oldNoOverwrite
-	}()
-
+	resetGlobals(t)
 	delims = nil
 	noOverwriteFlag = false
 
@@ -143,6 +119,8 @@ func TestGenerateFileDefaultDoesNotPanicOnNonStringValue(t *testing.T) {
 }
 
 func TestExistsErrorIncludesFilePath(t *testing.T) {
+	t.Parallel()
+
 	// A path through a regular file fails with ENOTDIR rather than ENOENT,
 	// regardless of the user running the test.
 	file := filepath.Join(t.TempDir(), "file")
@@ -161,6 +139,8 @@ func TestExistsErrorIncludesFilePath(t *testing.T) {
 }
 
 func TestJSONQueryErrorsIncludeContext(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name      string
 		jsonObj   string
@@ -197,6 +177,8 @@ func TestJSONQueryErrorsIncludeContext(t *testing.T) {
 }
 
 func TestLoopChannelConsumesAllProducedValuesInOrder(t *testing.T) {
+	t.Parallel()
+
 	ch, err := loop(1, 10, 3)
 	if err != nil {
 		t.Fatalf("loop returned error: %v", err)
@@ -219,13 +201,7 @@ func TestLoopChannelConsumesAllProducedValuesInOrder(t *testing.T) {
 }
 
 func TestGenerateDirRendersAllTemplates(t *testing.T) {
-	oldDelims := delims
-	oldNoOverwrite := noOverwriteFlag
-	defer func() {
-		delims = oldDelims
-		noOverwriteFlag = oldNoOverwrite
-	}()
-
+	resetGlobals(t)
 	delims = nil
 	noOverwriteFlag = false
 
