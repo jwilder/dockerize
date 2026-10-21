@@ -64,8 +64,8 @@ func TestGoModVersion(t *testing.T) {
 		want    string
 		wantOK  bool
 	}{
-		{"go directive", "module x\n\ngo 1.27.2\n", "1.27.2", true},
-		{"toolchain overrides go", "module x\n\ngo 1.27.0\ntoolchain go1.27.2\n", "1.27.2", true},
+		{"go directive", "module x\n\ngo 1.27.3\n", "1.27.3", true},
+		{"toolchain overrides go", "module x\n\ngo 1.27.0\ntoolchain go1.27.3\n", "1.27.3", true},
 		{"no directive", "module x\n", "", false},
 	}
 	for _, tt := range tests {
@@ -85,11 +85,11 @@ func TestDockerfileGoVersion(t *testing.T) {
 		want    string
 		wantOK  bool
 	}{
-		{"plain tag", "FROM golang:1.27.2 AS binary\n", "1.27.2", true},
-		{"alpine suffix", "FROM golang:1.27.2-alpine AS binary\n", "1.27.2", true},
-		{"lowercase keyword", "from golang:1.27.2\n", "1.27.2", true},
+		{"plain tag", "FROM golang:1.27.3 AS binary\n", "1.27.3", true},
+		{"alpine suffix", "FROM golang:1.27.3-alpine AS binary\n", "1.27.3", true},
+		{"lowercase keyword", "from golang:1.27.3\n", "1.27.3", true},
 		{"no golang image", "FROM gcr.io/distroless/static:nonroot\n", "", false},
-		{"golang mentioned mid-line", "# uses golang:1.27.2\n", "", false},
+		{"golang mentioned mid-line", "# uses golang:1.27.3\n", "", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
